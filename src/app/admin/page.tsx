@@ -554,15 +554,16 @@ function ManualAdminTab({ submissions }: { submissions: ManualSubmission[] }) {
               <span className="text-xs text-gray-400 ml-2">사번: {s.employeeId}</span>
               <span className="text-xs text-gray-400 ml-2">{s.department}</span>
             </div>
-            {s.teamName && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{s.teamName}</span>}
+            <a
+              href={s.fileUrl}
+              download={s.fileName}
+              className="text-xs text-green-600 hover:text-green-700 border border-green-200 rounded-lg px-3 py-1.5"
+            >
+              다운로드
+            </a>
           </div>
-          <div className="space-y-2 text-sm">
-            <InfoRow label="업무 스타일" value={s.workStyle} />
-            <InfoRow label="강점" value={s.strengths} />
-            {s.weaknesses && <InfoRow label="약점/주의사항" value={s.weaknesses} />}
-            <InfoRow label="소통 팁" value={s.communicationTip} />
-            {s.funFact && <InfoRow label="TMI" value={s.funFact} />}
-          </div>
+          {s.description && <p className="text-sm text-gray-600 mt-1">{s.description}</p>}
+          <p className="text-xs text-gray-400 mt-2">{s.fileName} · {(s.fileSize / 1024 / 1024).toFixed(1)}MB</p>
         </div>
       ))}
     </div>

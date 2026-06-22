@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readStore } from "@/lib/store";
-import archiver from "archiver";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const archiver = require("archiver") as (format: string, options?: object) => import("archiver").Archiver;
 import fs from "fs";
 import path from "path";
 import { PassThrough } from "stream";

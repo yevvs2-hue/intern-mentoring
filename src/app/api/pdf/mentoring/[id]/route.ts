@@ -11,7 +11,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   if (!s) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const stream = await renderToStream(React.createElement(MentoringPDF, { s }));
+  const stream = await renderToStream(React.createElement(MentoringPDF, { s }) as React.ReactElement<never>);
 
   const chunks: Buffer[] = [];
   for await (const chunk of stream) {
