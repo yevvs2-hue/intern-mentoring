@@ -101,12 +101,16 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">2026 여름 인턴 멘토링</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
-              안녕하세요, <span className="font-medium text-gray-700">{intern.name}</span>님 👋
-            </p>
+          <div className="flex items-center gap-4">
+            <img src="/logo.png" alt="미래에셋증권" className="h-7 object-contain" />
+            <div>
+              <h1 className="text-lg font-bold text-gray-900 leading-tight">2026 하반기 체험형 인턴</h1>
+              <p className="text-xs font-medium text-blue-900">멘토링 프로그램</p>
+            </div>
           </div>
+          <p className="text-sm text-gray-500">
+            안녕하세요, <span className="font-medium text-gray-700">{intern.name}</span>님 👋
+          </p>
           <button
             onClick={handleLogout}
             className="text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors"

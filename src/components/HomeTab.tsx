@@ -9,7 +9,15 @@ export default function HomeTab({ internName }: { internName: string }) {
     <div className="p-6 max-w-3xl mx-auto">
       {/* 환영 메시지 */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white mb-6">
-        <p className="text-blue-100 text-sm mb-1">2026 여름 인턴 멘토링</p>
+        <div className="flex items-center gap-3 mb-3">
+          <div className="bg-white rounded-lg px-3 py-1.5">
+            <img src="/logo.png" alt="미래에셋증권" className="h-6 object-contain" />
+          </div>
+          <div>
+            <p className="text-white text-base font-bold">2026 하반기 체험형 인턴</p>
+            <p className="text-blue-100 text-xs">멘토링 프로그램</p>
+          </div>
+        </div>
         <h2 className="text-2xl font-bold mb-1">안녕하세요, {internName}님 👋</h2>
         <p className="text-blue-100 text-sm">7월 6일 ~ 7월 31일 인턴 기간 동안 함께해요.</p>
       </div>

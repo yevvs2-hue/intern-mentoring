@@ -9,13 +9,15 @@ export async function POST(req: NextRequest) {
   }
 
   const store = await readStore();
-  const existing = store.interns.find((i) => i.employeeId === employeeId);
+  const intern = store.interns.find((i) => i.employeeId === employeeId);
 
-  if (!existing) {
-    store.interns.push({ name, employeeId });
-    await writeStore(store);
+  if (!intern) {
+    return NextResponse.json({ error: "등록되지 않은 사번입니다. 담당자에게 문의하세요." }, { status: 403 });
   }
 
-  const intern = existing ?? { name, employeeId };
+  if (intern.name !== name) {
+    return NextResponse.json({ error: "이름 또는 사번이 올바르지 않습니다." }, { status: 403 });
+  }
+
   return NextResponse.json({ intern });
 }

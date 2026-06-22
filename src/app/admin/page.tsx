@@ -11,7 +11,7 @@ interface AllSubmissions {
   photos: PhotoSubmission[];
 }
 
-type AdminTab = "overview" | "mentoring" | "senior" | "manual";
+type AdminTab = "overview" | "interns" | "mentoring" | "senior" | "manual";
 
 export default function AdminPage() {
   const [isAuthed, setIsAuthed] = useState(false);
@@ -83,9 +83,11 @@ export default function AdminPage() {
         <div className="w-full max-w-sm">
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="text-center mb-6">
-              <div className="text-3xl mb-2">🔐</div>
-              <h1 className="text-xl font-bold text-gray-900">관리자 로그인</h1>
-              <p className="text-xs text-gray-400 mt-1">2026 여름 인턴 멘토링 관리</p>
+              <div className="flex justify-center mb-3">
+                <img src="/logo.png" alt="미래에셋증권" className="h-7 object-contain" />
+              </div>
+              <h1 className="text-xl font-bold text-gray-900">2026 하반기 체험형 인턴</h1>
+              <p className="text-xs font-medium text-blue-900">멘토링 프로그램 · 관리자</p>
             </div>
 
             {authError && (
@@ -128,6 +130,7 @@ export default function AdminPage() {
 
   const adminTabs: { id: AdminTab; label: string; icon: string }[] = [
     { id: "overview", label: "전체 현황", icon: "📊" },
+    { id: "interns", label: "인턴 관리", icon: "👤" },
     { id: "mentoring", label: "멘토링", icon: "📝" },
     { id: "senior", label: "선배탐구", icon: "🔍" },
     { id: "manual", label: "발표 자료", icon: "📖" },
@@ -137,9 +140,12 @@ export default function AdminPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">관리자 대시보드</h1>
-            <p className="text-sm text-gray-400 mt-0.5">2026 여름 인턴 멘토링 전체 현황</p>
+          <div className="flex items-center gap-4">
+            <img src="/logo.png" alt="미래에셋증권" className="h-7 object-contain" />
+            <div>
+              <h1 className="text-lg font-bold text-gray-900 leading-tight">2026 하반기 체험형 인턴</h1>
+              <p className="text-xs font-medium text-blue-900">멘토링 프로그램 · 관리자</p>
+            </div>
           </div>
           <button
             onClick={handleLogout}
@@ -175,12 +181,130 @@ export default function AdminPage() {
         ) : (
           <>
             {activeTab === "overview" && <OverviewTab data={data} />}
+            {activeTab === "interns" && <InternManagementTab interns={data.interns} onRefresh={fetchData} />}
             {activeTab === "mentoring" && <MentoringAdminTab submissions={data.mentoring} photos={data.photos} />}
             {activeTab === "senior" && <SeniorAdminTab submissions={data.senior} photos={data.photos} />}
             {activeTab === "manual" && <ManualAdminTab submissions={data.manual} />}
           </>
         )}
       </main>
+    </div>
+  );
+}
+
+function InternManagementTab({ interns, onRefresh }: { interns: Intern[]; onRefresh: () => void }) {
+  const [name, setName] = useState("");
+  const [employeeId, setEmployeeId] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/interns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, employeeId }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setName("");
+        setEmployeeId("");
+        onRefresh();
+      } else {
+        setError(json.error ?? "추가에 실패했습니다.");
+      }
+    } catch {
+      setError("서버 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string, internName: string) => {
+    if (!confirm(`"${internName}" 인턴을 삭제하시겠습니까?\n제출한 활동일지는 유지됩니다.`)) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch("/api/admin/interns", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employeeId: id }),
+      });
+      if (res.ok) {
+        onRefresh();
+      }
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <h2 className="text-base font-semibold text-gray-800 mb-4">인턴 추가</h2>
+        {error && (
+          <div className="mb-3 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-2.5 text-sm">
+            {error}
+          </div>
+        )}
+        <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-3">
+          <input
+            type="text"
+            placeholder="이름"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+          />
+          <input
+            type="text"
+            placeholder="사번"
+            value={employeeId}
+            onChange={(e) => setEmployeeId(e.target.value)}
+            required
+            className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+          />
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-gray-800 hover:bg-gray-900 disabled:bg-gray-400 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors whitespace-nowrap"
+          >
+            {loading ? "추가 중..." : "인턴 추가"}
+          </button>
+        </form>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-semibold text-gray-700">등록된 인턴 ({interns.length}명)</h2>
+        </div>
+        {interns.length === 0 ? (
+          <div className="text-sm text-gray-400 bg-white rounded-xl border border-gray-100 p-10 text-center">
+            등록된 인턴이 없습니다.
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+            {interns.map((intern) => (
+              <div key={intern.employeeId} className="flex items-center justify-between px-5 py-4">
+                <div>
+                  <span className="font-medium text-gray-800">{intern.name}</span>
+                  <span className="text-xs text-gray-400 ml-2">사번: {intern.employeeId}</span>
+                </div>
+                <button
+                  onClick={() => handleDelete(intern.employeeId, intern.name)}
+                  disabled={deletingId === intern.employeeId}
+                  className="text-xs text-red-500 hover:text-red-700 border border-red-200 hover:border-red-300 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-40"
+                >
+                  {deletingId === intern.employeeId ? "삭제 중..." : "삭제"}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

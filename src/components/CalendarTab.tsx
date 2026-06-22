@@ -16,9 +16,6 @@ export default function CalendarTab({ mentoringList, seniorList, manualList }: C
   const [viewYear, setViewYear] = useState(2026);
   const [viewMonth, setViewMonth] = useState(6); // 7월
 
-  const INTERN_START = "2026-07-06";
-  const INTERN_END = "2026-07-31";
-
   const firstDay = new Date(viewYear, viewMonth, 1).getDay();
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
 
@@ -85,12 +82,11 @@ export default function CalendarTab({ mentoringList, seniorList, manualList }: C
               day === today.getDate() &&
               viewMonth === today.getMonth() &&
               viewYear === today.getFullYear();
-            const isInternPeriod = dateStr >= INTERN_START && dateStr <= INTERN_END;
 
             return (
               <div
                 key={idx}
-                className={`h-20 p-2 border-r border-b border-gray-50 ${isToday ? "bg-blue-50" : isInternPeriod ? "bg-amber-50" : ""}`}
+                className={`h-20 p-2 border-r border-b border-gray-50 ${isToday ? "bg-blue-50" : ""}`}
               >
                 <span
                   className={`text-sm font-medium ${

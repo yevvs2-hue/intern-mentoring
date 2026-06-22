@@ -44,8 +44,11 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
-            <div className="text-4xl mb-3">📋</div>
-            <h1 className="text-2xl font-bold text-gray-900">2026 여름 인턴 멘토링</h1>
+            <div className="flex justify-center mb-4">
+              <img src="/logo.png" alt="미래에셋증권" className="h-8 object-contain" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900">2026 하반기 체험형 인턴</h1>
+            <p className="text-sm font-medium text-blue-600 mt-1">멘토링 프로그램</p>
             <p className="text-sm text-gray-500 mt-2">활동일지 제출 시스템</p>
           </div>
 

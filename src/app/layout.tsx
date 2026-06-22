@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "2026 여름 인턴 멘토링 활동일지",
+  title: "2026 하반기 체험형 인턴 - 멘토링 프로그램",
   description: "인턴 멘토링 활동일지 제출 시스템",
 };
 

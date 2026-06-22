@@ -68,7 +68,7 @@ export function MentoringPDF({ s }: { s: MentoringSubmission }) {
           <View style={base.headerTop}>
             <View>
               <Text style={base.title}>멘토링 활동일지</Text>
-              <Text style={base.subtitle}>2026 여름 인턴 멘토링 프로그램</Text>
+              <Text style={base.subtitle}>2026 하반기 체험형 인턴 - 멘토링 프로그램</Text>
             </View>
             <View style={[base.badge, { backgroundColor: c.blue }]}>
               <Text>{s.date}</Text>
@@ -103,7 +103,7 @@ export function MentoringPDF({ s }: { s: MentoringSubmission }) {
         {s.nextPlan && <Section label="다음 계획" value={s.nextPlan} bg={c.gray50} dot={c.gray300} />}
 
         <View style={base.footer}>
-          <Text style={base.footerText}>2026 여름 인턴 멘토링 활동일지</Text>
+          <Text style={base.footerText}>2026 하반기 체험형 인턴 - 멘토링 프로그램</Text>
           <Text style={base.footerText}>{s.internName} · {s.employeeId}</Text>
         </View>
       </Page>
@@ -119,7 +119,7 @@ export function SeniorPDF({ s }: { s: SeniorSubmission }) {
           <View style={base.headerTop}>
             <View>
               <Text style={base.title}>선배와의 탐구생활</Text>
-              <Text style={base.subtitle}>2026 여름 인턴 멘토링 프로그램</Text>
+              <Text style={base.subtitle}>2026 하반기 체험형 인턴 - 멘토링 프로그램</Text>
             </View>
             <View style={[base.badge, { backgroundColor: c.purple }]}>
               <Text>{s.date}</Text>
@@ -157,7 +157,7 @@ export function SeniorPDF({ s }: { s: SeniorSubmission }) {
         <Section label="인사이트 / 느낀 점" value={s.insights} bg={c.gray50} dot={c.purple} />
 
         <View style={base.footer}>
-          <Text style={base.footerText}>2026 여름 인턴 선배와의 탐구생활</Text>
+          <Text style={base.footerText}>2026 하반기 체험형 인턴 - 선배와의 탐구생활</Text>
           <Text style={base.footerText}>{s.internName} · {s.employeeId}</Text>
         </View>
       </Page>
