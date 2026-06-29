@@ -1,6 +1,7 @@
-import { Document, Page, Text, View, StyleSheet, Font } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Font, Image } from "@react-pdf/renderer";
 import path from "path";
-import { MentoringSubmission, SeniorSubmission } from "@/types";
+import fs from "fs";
+import { MentoringSubmission, SeniorSubmission, PhotoSubmission } from "@/types";
 
 Font.register({
   family: "NanumGothic",
@@ -45,6 +46,35 @@ const base = StyleSheet.create({
   footerText: { fontSize: 8, color: c.gray300 },
 });
 
+function PhotoSection({ photos, dot }: { photos: PhotoSubmission[]; dot: string }) {
+  if (!photos || photos.length === 0) return null;
+  const validPhotos = photos.filter((p) => {
+    if (!p.fileUrl) return false;
+    const filePath = path.join(process.cwd(), "public", p.fileUrl);
+    return fs.existsSync(filePath);
+  });
+  if (validPhotos.length === 0) return null;
+  return (
+    <View style={base.section}>
+      <View style={base.sectionHeader}>
+        <View style={[base.sectionDot, { backgroundColor: dot }]} />
+        <Text style={base.sectionLabel}>첨부 사진</Text>
+      </View>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        {validPhotos.map((p) => {
+          const filePath = path.join(process.cwd(), "public", p.fileUrl);
+          return (
+            <View key={p.id} style={{ width: "48%" }}>
+              <Image src={filePath} style={{ width: "100%", borderRadius: 4 }} />
+              {p.caption ? <Text style={{ fontSize: 8, color: "#6B7280", marginTop: 3 }}>{p.caption}</Text> : null}
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 function Section({ label, value, bg, dot }: { label: string; value: string; bg: string; dot: string }) {
   if (!value) return null;
   return (
@@ -60,7 +90,7 @@ function Section({ label, value, bg, dot }: { label: string; value: string; bg: 
   );
 }
 
-export function MentoringPDF({ s }: { s: MentoringSubmission }) {
+export function MentoringPDF({ s, photos = [] }: { s: MentoringSubmission; photos?: PhotoSubmission[] }) {
   return (
     <Document title={`멘토링 활동일지_${s.internName}_${s.date}`}>
       <Page size="A4" style={base.page}>
@@ -101,6 +131,7 @@ export function MentoringPDF({ s }: { s: MentoringSubmission }) {
         <Section label="활동 내용" value={s.content} bg={c.lightBlue} dot={c.blue} />
         <Section label="배운 점 / 느낀 점" value={s.learned} bg={c.gray50} dot={c.blue} />
         {s.nextPlan && <Section label="다음 계획" value={s.nextPlan} bg={c.gray50} dot={c.gray300} />}
+        <PhotoSection photos={photos} dot={c.blue} />
 
         <View style={base.footer}>
           <Text style={base.footerText}>2026 하반기 체험형 인턴 - 멘토링 프로그램</Text>
@@ -111,7 +142,7 @@ export function MentoringPDF({ s }: { s: MentoringSubmission }) {
   );
 }
 
-export function SeniorPDF({ s }: { s: SeniorSubmission }) {
+export function SeniorPDF({ s, photos = [] }: { s: SeniorSubmission; photos?: PhotoSubmission[] }) {
   return (
     <Document title={`선배탐구_${s.internName}_${s.date}`}>
       <Page size="A4" style={base.page}>
@@ -155,6 +186,7 @@ export function SeniorPDF({ s }: { s: SeniorSubmission }) {
 
         <Section label="탐구 내용" value={s.content} bg={c.lightPurple} dot={c.purple} />
         <Section label="인사이트 / 느낀 점" value={s.insights} bg={c.gray50} dot={c.purple} />
+        <PhotoSection photos={photos} dot={c.purple} />
 
         <View style={base.footer}>
           <Text style={base.footerText}>2026 하반기 체험형 인턴 - 선배와의 탐구생활</Text>
