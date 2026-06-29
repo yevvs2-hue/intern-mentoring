@@ -2,7 +2,33 @@ import { NextRequest, NextResponse } from "next/server";
 import { readStore, writeStore } from "@/lib/store";
 
 export async function POST(req: NextRequest) {
-  const { name, employeeId } = await req.json();
+  const body = await req.json();
+
+  // 엑셀 일괄 업로드: { interns: [{name, employeeId}] }
+  if (Array.isArray(body.interns)) {
+    const rows: { name: string; employeeId: string }[] = body.interns;
+    if (rows.length === 0) {
+      return NextResponse.json({ error: "데이터가 없습니다." }, { status: 400 });
+    }
+    const store = await readStore();
+    const existingIds = new Set(store.interns.map((i) => i.employeeId));
+    let added = 0;
+    let skipped = 0;
+    for (const row of rows) {
+      const name = String(row.name ?? "").trim();
+      const employeeId = String(row.employeeId ?? "").trim();
+      if (!name || !employeeId) { skipped++; continue; }
+      if (existingIds.has(employeeId)) { skipped++; continue; }
+      store.interns.push({ name, employeeId });
+      existingIds.add(employeeId);
+      added++;
+    }
+    await writeStore(store);
+    return NextResponse.json({ success: true, added, skipped });
+  }
+
+  // 단건 추가
+  const { name, employeeId } = body;
   if (!name || !employeeId) {
     return NextResponse.json({ error: "이름과 사번을 입력하세요." }, { status: 400 });
   }

@@ -32,3 +32,6 @@ next-env.d.ts
 
 # data
 data/
+
+.vercel
+.env*

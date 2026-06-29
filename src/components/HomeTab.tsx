@@ -1,53 +1,86 @@
 "use client";
 
+import { useState } from "react";
+import { MentoringSubmission, SeniorSubmission, ManualSubmission } from "@/types";
+
 const NOTICES: { title: string; content: string; important?: boolean }[] = [
   // 나중에 유의사항을 여기에 추가하세요
 ];
 
-export default function HomeTab({ internName }: { internName: string }) {
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+const DEADLINES: Record<string, { text: string; color: string }[]> = {
+  "2026-07-13": [{ text: "멘토링 1차", color: "blue" }, { text: "탐구 1차", color: "purple" }],
+  "2026-07-20": [{ text: "멘토링 2차", color: "blue" }, { text: "탐구 2차", color: "purple" }],
+  "2026-07-27": [{ text: "멘토링 3차", color: "blue" }, { text: "탐구 3차", color: "purple" }],
+  "2026-07-29": [{ text: "발표 자료", color: "green" }],
+};
+
+interface HomeTabProps {
+  internName: string;
+  mentoringList: MentoringSubmission[];
+  seniorList: SeniorSubmission[];
+  manualList: ManualSubmission[];
+}
+
+export default function HomeTab({ internName, mentoringList, seniorList, manualList }: HomeTabProps) {
+  const today = new Date();
+  const [viewYear, setViewYear] = useState(2026);
+  const [viewMonth, setViewMonth] = useState(6); // 7월
+
+  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const mentoringDates = new Set(mentoringList.map((s) => s.date));
+  const seniorDates = new Set(seniorList.map((s) => s.date));
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); }
+    else setViewMonth(viewMonth - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); }
+    else setViewMonth(viewMonth + 1);
+  };
+
+  const formatDate = (day: number) =>
+    `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+  const cells: (number | null)[] = [
+    ...Array(firstDay).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+
+  const totalSubmissions = mentoringList.length + seniorList.length + manualList.length;
+
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      {/* 환영 메시지 */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white mb-6">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="bg-white rounded-lg px-3 py-1.5">
-            <img src="/logo.png" alt="미래에셋증권" className="h-6 object-contain" />
-          </div>
-          <div>
-            <p className="text-white text-base font-bold">2026 하반기 체험형 인턴</p>
-            <p className="text-blue-100 text-xs">멘토링 프로그램</p>
-          </div>
+    <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-5">
+      {/* 환영 배너 */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-5">
+        <div className="flex items-center justify-between mb-3">
+          <img src="/logo.png" alt="미래에셋증권" className="h-6 object-contain" />
+          <span className="text-xs text-gray-400">2026 하반기 체험형 인턴</span>
         </div>
-        <h2 className="text-2xl font-bold mb-1">안녕하세요, {internName}님 👋</h2>
-        <p className="text-blue-100 text-sm">7월 6일 ~ 7월 31일 인턴 기간 동안 함께해요.</p>
+        <h2 className="text-xl font-bold text-gray-900 mb-1">안녕하세요, {internName}님</h2>
+        <p className="text-sm text-gray-400">멘토링 프로그램 · 7월 6일 ~ 7월 31일</p>
       </div>
 
-      {/* 인턴 기간 진행 바 */}
-      <InternProgress />
+      {/* 제출 현황 */}
+      <div className="grid grid-cols-3 gap-3">
+        <SummaryCard label="멘토링 활동일지" count={mentoringList.length} total={3} color="blue" icon="📝" />
+        <SummaryCard label="선배탐구생활" count={seniorList.length} total={3} color="purple" icon="🔍" />
+        <SummaryCard label="발표 자료" count={manualList.length} total={1} color="green" icon="📖" />
+      </div>
 
-      {/* 유의사항 */}
-      <div className="mt-6">
-        <h3 className="text-base font-semibold text-gray-700 mb-3">공지 및 유의사항</h3>
-        {NOTICES.length === 0 ? (
-          <div className="bg-gray-50 border border-dashed border-gray-200 rounded-2xl p-8 text-center text-sm text-gray-400">
-            등록된 공지사항이 없습니다.
-          </div>
-        ) : (
-          <div className="space-y-3">
+      {/* 공지 */}
+      {NOTICES.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">공지 및 유의사항</h3>
+          <div className="space-y-2">
             {NOTICES.map((notice, i) => (
-              <div
-                key={i}
-                className={`rounded-xl border p-4 ${
-                  notice.important
-                    ? "bg-red-50 border-red-100"
-                    : "bg-white border-gray-200"
-                }`}
-              >
+              <div key={i} className={`rounded-xl border p-4 ${notice.important ? "bg-red-50 border-red-100" : "bg-white border-gray-200"}`}>
                 <div className="flex items-start gap-2">
                   {notice.important && (
-                    <span className="text-xs bg-red-100 text-red-600 font-semibold px-2 py-0.5 rounded-full mt-0.5 shrink-0">
-                      중요
-                    </span>
+                    <span className="text-xs bg-red-100 text-red-600 font-semibold px-2 py-0.5 rounded-full mt-0.5 shrink-0">중요</span>
                   )}
                   <div>
                     <p className="text-sm font-semibold text-gray-800">{notice.title}</p>
@@ -57,64 +90,126 @@ export default function HomeTab({ internName }: { internName: string }) {
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* 활동일지 바로가기 */}
-      <div className="mt-6">
-        <h3 className="text-base font-semibold text-gray-700 mb-3">활동일지 바로가기</h3>
-        <div className="grid grid-cols-3 gap-3">
-          <ShortcutCard icon="📝" label="멘토링 활동일지" color="blue" />
-          <ShortcutCard icon="🔍" label="선배와의 탐구생활" color="purple" />
-          <ShortcutCard icon="📖" label="우리팀 사용 설명서" color="green" />
+      {/* 캘린더 */}
+      <div>
+        <h3 className="text-sm font-semibold text-gray-700 mb-2">제출 캘린더</h3>
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+            <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500">←</button>
+            <span className="text-base font-semibold text-gray-800">{viewYear}년 {viewMonth + 1}월</span>
+            <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500">→</button>
+          </div>
+          <div className="grid grid-cols-7 border-b border-gray-100">
+            {WEEKDAYS.map((d) => (
+              <div key={d} className="text-center text-xs font-medium text-gray-400 py-2">{d}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7">
+            {cells.map((day, idx) => {
+              if (!day) return <div key={idx} className="h-12 border-r border-b border-gray-50 last:border-r-0" />;
+              const dateStr = formatDate(day);
+              const hasMentoring = mentoringDates.has(dateStr);
+              const hasSenior = seniorDates.has(dateStr);
+              const deadlines = DEADLINES[dateStr] ?? [];
+              const isToday = day === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
+              return (
+                <div key={idx} className={`h-12 p-1.5 border-r border-b border-gray-50 last:border-r-0 flex flex-col items-center gap-1 ${isToday ? "bg-blue-50" : ""}`}>
+                  <span className={`text-xs font-medium leading-none ${isToday ? "w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center" : "text-gray-700"}`}>
+                    {day}
+                  </span>
+                  <div className="flex gap-0.5 flex-wrap justify-center">
+                    {hasMentoring && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />}
+                    {hasSenior && <span className="w-1.5 h-1.5 rounded-full bg-purple-500 inline-block" />}
+                    {deadlines.length > 0 && <span className="w-1.5 h-1.5 rounded-full border border-red-400 inline-block" />}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-400">
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500 inline-block" /> 멘토링 제출</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-500 inline-block" /> 탐구 제출</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full border border-red-400 inline-block" /> 마감일</span>
         </div>
       </div>
+
+      {/* 마감일 목록 */}
+      <div>
+        <h3 className="text-sm font-semibold text-gray-700 mb-2">마감일 안내</h3>
+        <div className="bg-white rounded-2xl border border-gray-200 divide-y divide-gray-100">
+          {Object.entries(DEADLINES).sort().map(([date, items]) => {
+            const d = new Date(date);
+            const month = d.getMonth() + 1;
+            const day = d.getDate();
+            const weekday = ["일", "월", "화", "수", "목", "금", "토"][d.getDay()];
+            const colorMap: Record<string, string> = {
+              blue: "bg-blue-100 text-blue-700",
+              purple: "bg-purple-100 text-purple-700",
+              green: "bg-green-100 text-green-700",
+            };
+            return (
+              <div key={date} className="flex items-center justify-between px-4 py-3">
+                <span className="text-sm font-semibold text-gray-800">
+                  {month}월 {day}일 <span className="text-gray-400 font-normal">({weekday})</span>
+                </span>
+                <div className="flex gap-1.5 flex-wrap justify-end">
+                  {items.map((item, i) => (
+                    <span key={i} className={`text-xs font-medium px-2 py-0.5 rounded-full ${colorMap[item.color]}`}>
+                      {item.text}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 최근 제출 */}
+      {totalSubmissions > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">최근 제출 내역</h3>
+          <div className="space-y-2">
+            {[
+              ...mentoringList.map((s) => ({ type: "멘토링", date: s.date, color: "blue" })),
+              ...seniorList.map((s) => ({ type: "선배탐구", date: s.date, color: "purple" })),
+              ...manualList.map((s) => ({ type: "발표 자료", date: s.submittedAt.slice(0, 10), color: "green" })),
+            ]
+              .sort((a, b) => b.date.localeCompare(a.date))
+              .slice(0, 5)
+              .map((item, i) => (
+                <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    item.color === "blue" ? "bg-blue-100 text-blue-700" :
+                    item.color === "purple" ? "bg-purple-100 text-purple-700" :
+                    "bg-green-100 text-green-700"
+                  }`}>{item.type}</span>
+                  <span className="text-xs text-gray-400">{item.date}</span>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function InternProgress() {
-  const start = new Date("2026-07-06").getTime();
-  const end = new Date("2026-07-31").getTime();
-  const now = new Date().getTime();
-  const total = end - start;
-  const elapsed = Math.max(0, Math.min(now - start, total));
-  const percent = Math.round((elapsed / total) * 100);
-  const daysLeft = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
 
-  return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-5">
-      <div className="flex justify-between items-center mb-2">
-        <span className="text-sm font-medium text-gray-700">인턴 기간 진행률</span>
-        <span className="text-sm text-gray-400">
-          {percent >= 100 ? "완료" : `D-${daysLeft}`}
-        </span>
-      </div>
-      <div className="w-full bg-gray-100 rounded-full h-2">
-        <div
-          className="bg-blue-500 h-2 rounded-full transition-all"
-          style={{ width: `${percent}%` }}
-        />
-      </div>
-      <div className="flex justify-between mt-1.5 text-xs text-gray-400">
-        <span>7월 6일</span>
-        <span className="font-medium text-blue-600">{percent}%</span>
-        <span>7월 31일</span>
-      </div>
-    </div>
-  );
-}
-
-function ShortcutCard({ icon, label, color }: { icon: string; label: string; color: string }) {
+function SummaryCard({ label, count, total, color, icon }: { label: string; count: number; total: number; color: string; icon: string }) {
   const colorMap: Record<string, string> = {
     blue: "bg-blue-50 border-blue-100 text-blue-700",
     purple: "bg-purple-50 border-purple-100 text-purple-700",
     green: "bg-green-50 border-green-100 text-green-700",
   };
   return (
-    <div className={`rounded-xl border p-4 text-center ${colorMap[color]}`}>
-      <div className="text-2xl mb-2">{icon}</div>
-      <p className="text-xs font-medium leading-tight">{label}</p>
+    <div className={`rounded-2xl border p-3 ${colorMap[color]}`}>
+      <div className="text-xl mb-1">{icon}</div>
+      <div className="text-xl font-bold leading-tight">{count}<span className="text-xs font-normal opacity-50">/{total}</span></div>
+      <div className="text-xs mt-0.5 opacity-80 leading-tight">{label}</div>
     </div>
   );
 }

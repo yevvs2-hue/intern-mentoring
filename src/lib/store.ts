@@ -1,20 +1,25 @@
-import fs from "fs";
-import path from "path";
+import { put, get } from "@vercel/blob";
 import { SubmissionsStore } from "@/types";
 
-const DATA_PATH = path.join(process.cwd(), "data", "submissions.json");
+const STORE_PATH = "data/submissions.json";
+
+const INITIAL: SubmissionsStore = { interns: [], mentoring: [], senior: [], manual: [], photos: [] };
 
 export async function readStore(): Promise<SubmissionsStore> {
   try {
-    const raw = await fs.promises.readFile(DATA_PATH, "utf-8");
-    return JSON.parse(raw) as SubmissionsStore;
+    const result = await get(STORE_PATH, { access: "private" });
+    if (!result) return { ...INITIAL };
+    return await new Response(result.stream).json() as SubmissionsStore;
   } catch {
-    const initial: SubmissionsStore = { interns: [], mentoring: [], senior: [], manual: [], photos: [] };
-    await writeStore(initial);
-    return initial;
+    return { ...INITIAL };
   }
 }
 
 export async function writeStore(data: SubmissionsStore): Promise<void> {
-  await fs.promises.writeFile(DATA_PATH, JSON.stringify(data, null, 2), "utf-8");
+  await put(STORE_PATH, JSON.stringify(data, null, 2), {
+    access: "private",
+    allowOverwrite: true,
+    addRandomSuffix: false,
+    contentType: "application/json",
+  });
 }

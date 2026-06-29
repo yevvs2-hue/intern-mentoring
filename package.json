@@ -12,10 +12,12 @@
     "@fontsource/noto-sans-kr": "^5.2.9",
     "@react-pdf/renderer": "^4.5.1",
     "@types/archiver": "^8.0.0",
+    "@vercel/blob": "^2.4.1",
     "archiver": "^8.0.0",
     "next": "16.2.9",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -24,6 +26,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "sharp": "^0.35.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

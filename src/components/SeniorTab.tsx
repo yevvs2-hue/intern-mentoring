@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { SeniorSubmission, PhotoSubmission } from "@/types";
+import { downloadPdf } from "@/lib/download-pdf";
 
 interface SeniorTabProps {
   onSubmit: (data: Omit<SeniorSubmission, "id" | "submittedAt" | "employeeId">) => void | Promise<void>;
@@ -20,18 +21,50 @@ export default function SeniorTab({ onSubmit, onPhotoSubmit, submissions, photos
     content: "",
     insights: "",
   });
+  const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
+  const [photoDragging, setPhotoDragging] = useState(false);
+  const [photoError, setPhotoError] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  const addPhotos = (fl: FileList | null) => {
+    if (!fl) return;
+    setSelectedPhotos(prev => [...prev, ...Array.from(fl).filter(f => f.type.startsWith("image/"))]);
+    setPhotoError(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSubmit({ ...form });
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 3000);
-    setForm((prev) => ({ ...prev, topic: "", content: "", insights: "" }));
+    if (selectedPhotos.length === 0) {
+      setPhotoError(true);
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await onSubmit({ ...form });
+      for (const file of selectedPhotos) {
+        const fd = new FormData();
+        fd.append("type", "senior");
+        fd.append("internName", form.internName);
+        fd.append("department", form.department);
+        fd.append("date", form.date);
+        fd.append("caption", "");
+        fd.append("file", file);
+        await onPhotoSubmit(fd);
+      }
+      setSubmitted(true);
+      setTimeout(() => setSubmitted(false), 3000);
+      setForm((prev) => ({ ...prev, topic: "", content: "", insights: "" }));
+      setSelectedPhotos([]);
+      setPhotoError(false);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -101,8 +134,56 @@ export default function SeniorTab({ onSubmit, onPhotoSubmit, submissions, photos
           />
         </Field>
 
-        <button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-xl transition-colors">
-          탐구생활 제출하기
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            활동 사진 <span className="text-red-500">*</span>
+            <span className="text-xs font-normal text-gray-400 ml-1">(1장 이상 필수)</span>
+          </label>
+          <div
+            onClick={() => photoInputRef.current?.click()}
+            onDragOver={e => { e.preventDefault(); setPhotoDragging(true); }}
+            onDragLeave={() => setPhotoDragging(false)}
+            onDrop={e => { e.preventDefault(); setPhotoDragging(false); addPhotos(e.dataTransfer.files); }}
+            className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-colors ${
+              photoError ? "border-red-400 bg-red-50" :
+              photoDragging ? "border-purple-400 bg-purple-50" :
+              selectedPhotos.length > 0 ? "border-purple-300 bg-purple-50" :
+              "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            {selectedPhotos.length === 0 ? (
+              <div>
+                <p className="text-2xl mb-1">📸</p>
+                <p className="text-sm text-gray-500">사진을 끌어다 놓거나 클릭해서 선택</p>
+                <p className="text-xs text-gray-400 mt-0.5">여러 장 가능 · JPG, PNG, WEBP</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 gap-2">
+                {selectedPhotos.map((f, i) => (
+                  <div key={i} className="relative group">
+                    <img src={URL.createObjectURL(f)} className="w-full h-20 object-cover rounded-lg" alt="" />
+                    <button
+                      type="button"
+                      onClick={e => { e.stopPropagation(); setSelectedPhotos(prev => prev.filter((_, j) => j !== i)); }}
+                      className="absolute top-1 right-1 bg-black/50 text-white rounded-full w-4 h-4 text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100"
+                    >✕</button>
+                  </div>
+                ))}
+                <div className="h-20 border-2 border-dashed border-purple-200 rounded-lg flex items-center justify-center text-purple-300 text-xl">+</div>
+              </div>
+            )}
+          </div>
+          <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => addPhotos(e.target.files)} />
+          {photoError && (
+            <p className="text-xs text-red-500 mt-1">활동 사진을 1장 이상 첨부해 주세요.</p>
+          )}
+          {selectedPhotos.length > 0 && (
+            <p className="text-xs text-purple-600 mt-1">{selectedPhotos.length}장 선택됨</p>
+          )}
+        </div>
+
+        <button type="submit" disabled={submitting} className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-semibold py-3 rounded-xl transition-colors">
+          {submitting ? "제출 중..." : "탐구생활 제출하기"}
         </button>
       </form>
 
@@ -117,7 +198,6 @@ export default function SeniorTab({ onSubmit, onPhotoSubmit, submissions, photos
         </div>
       )}
 
-      <PhotoUploadSection type="senior" onPhotoSubmit={onPhotoSubmit} photos={photos} />
     </div>
   );
 }
@@ -137,14 +217,13 @@ function SubmissionCard({ submission: s }: { submission: SeniorSubmission }) {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-gray-400">{s.date}</span>
-          <a
-            href={`/api/pdf/senior/${s.id}`}
-            download
-            onClick={e => e.stopPropagation()}
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); downloadPdf(`/api/pdf/senior/${s.id}`, `선배탐구생활_${s.internName}_${s.date}.pdf`); }}
             className="text-xs text-purple-600 hover:text-purple-700 border border-purple-200 bg-white rounded-lg px-2 py-1"
           >
             PDF
-          </a>
+          </button>
           <span className="text-gray-400 text-xs">{open ? "▲" : "▼"}</span>
         </div>
       </button>

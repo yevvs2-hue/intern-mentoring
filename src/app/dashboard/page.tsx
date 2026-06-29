@@ -99,16 +99,16 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+      <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <img src="/logo.png" alt="미래에셋증권" className="h-7 object-contain" />
+          <div className="flex items-center gap-2 sm:gap-4">
+            <img src="/logo.png" alt="미래에셋증권" className="hidden sm:block h-7 object-contain" />
             <div>
-              <h1 className="text-lg font-bold text-gray-900 leading-tight">2026 하반기 체험형 인턴</h1>
+              <h1 className="text-base sm:text-lg font-bold text-gray-900 leading-tight">2026 하반기 체험형 인턴</h1>
               <p className="text-xs font-medium text-blue-900">멘토링 프로그램</p>
             </div>
           </div>
-          <p className="text-sm text-gray-500">
+          <p className="hidden sm:block text-sm text-gray-500">
             안녕하세요, <span className="font-medium text-gray-700">{intern.name}</span>님 👋
           </p>
           <button
@@ -124,10 +124,8 @@ export default function DashboardPage() {
 
       <main>
         {activeTab === "home" && (
-          <HomeTab internName={intern.name} />
-        )}
-        {activeTab === "calendar" && (
-          <CalendarTab
+          <HomeTab
+            internName={intern.name}
             mentoringList={mentoringList}
             seniorList={seniorList}
             manualList={manualList}
