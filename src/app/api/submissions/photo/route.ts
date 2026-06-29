@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readStore, writeStore } from "@/lib/store";
 import { PhotoSubmission } from "@/types";
-import fs from "fs";
+import { put } from "@vercel/blob";
 import path from "path";
-
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "photos");
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -26,14 +24,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "이미지 파일(JPG, PNG, GIF, WEBP)만 업로드할 수 있습니다." }, { status: 400 });
   }
 
-  await fs.promises.mkdir(UPLOAD_DIR, { recursive: true });
-
   const ext = path.extname(file.name) || ".jpg";
-  const savedName = `${type}_${crypto.randomUUID()}${ext}`;
-  const savedPath = path.join(UPLOAD_DIR, savedName);
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await fs.promises.writeFile(savedPath, buffer);
+  const blobName = `photos/${type}_${crypto.randomUUID()}${ext}`;
+  const { url: fileUrl } = await put(blobName, file, { access: "public" });
 
   const submission: PhotoSubmission = {
     id: crypto.randomUUID(),
@@ -44,7 +37,7 @@ export async function POST(req: NextRequest) {
     date,
     caption,
     fileName: file.name,
-    fileUrl: `/uploads/photos/${savedName}`,
+    fileUrl,
     fileSize: file.size,
     submittedAt: new Date().toISOString(),
   };

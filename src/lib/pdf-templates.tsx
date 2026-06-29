@@ -1,6 +1,5 @@
 import { Document, Page, Text, View, StyleSheet, Font, Image } from "@react-pdf/renderer";
 import path from "path";
-import fs from "fs";
 import { MentoringSubmission, SeniorSubmission, PhotoSubmission } from "@/types";
 
 Font.register({
@@ -48,11 +47,7 @@ const base = StyleSheet.create({
 
 function PhotoSection({ photos, dot }: { photos: PhotoSubmission[]; dot: string }) {
   if (!photos || photos.length === 0) return null;
-  const validPhotos = photos.filter((p) => {
-    if (!p.fileUrl) return false;
-    const filePath = path.join(process.cwd(), "public", p.fileUrl);
-    return fs.existsSync(filePath);
-  });
+  const validPhotos = photos.filter((p) => !!p.fileUrl);
   if (validPhotos.length === 0) return null;
   return (
     <View style={base.section}>
@@ -61,15 +56,12 @@ function PhotoSection({ photos, dot }: { photos: PhotoSubmission[]; dot: string 
         <Text style={base.sectionLabel}>첨부 사진</Text>
       </View>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        {validPhotos.map((p) => {
-          const filePath = path.join(process.cwd(), "public", p.fileUrl);
-          return (
-            <View key={p.id} style={{ width: "48%" }}>
-              <Image src={filePath} style={{ width: "100%", borderRadius: 4 }} />
-              {p.caption ? <Text style={{ fontSize: 8, color: "#6B7280", marginTop: 3 }}>{p.caption}</Text> : null}
-            </View>
-          );
-        })}
+        {validPhotos.map((p) => (
+          <View key={p.id} style={{ width: "48%" }}>
+            <Image src={p.fileUrl} style={{ width: "100%", borderRadius: 4 }} />
+            {p.caption ? <Text style={{ fontSize: 8, color: "#6B7280", marginTop: 3 }}>{p.caption}</Text> : null}
+          </View>
+        ))}
       </View>
     </View>
   );
