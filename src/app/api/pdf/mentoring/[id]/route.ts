@@ -2,7 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { renderToStream } from "@react-pdf/renderer";
 import { readStore } from "@/lib/store";
 import { MentoringPDF } from "@/lib/pdf-templates";
+import { PhotoSubmission } from "@/types";
 import React from "react";
+
+async function resolvePhotos(photos: PhotoSubmission[]) {
+  return Promise.all(photos.map(async (p) => {
+    try {
+      const res = await fetch(p.fileUrl, {
+        headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+      });
+      if (!res.ok) return null;
+      const buffer = await res.arrayBuffer();
+      const base64 = Buffer.from(buffer).toString("base64");
+      const contentType = res.headers.get("content-type") || "image/jpeg";
+      return { ...p, fileUrl: `data:${contentType};base64,${base64}` };
+    } catch {
+      return null;
+    }
+  })).then((r) => r.filter(Boolean) as PhotoSubmission[]);
+}
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -11,9 +29,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   if (!s) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const photos = (store.photos ?? []).filter(
+  const rawPhotos = (store.photos ?? []).filter(
     (p) => p.type === "mentoring" && p.employeeId === s.employeeId && p.date === s.date
   );
+  const photos = await resolvePhotos(rawPhotos);
 
   const stream = await renderToStream(React.createElement(MentoringPDF, { s, photos }) as React.ReactElement<never>);
 

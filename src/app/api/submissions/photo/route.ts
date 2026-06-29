@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
   const ext = path.extname(file.name) || ".jpg";
   const blobName = `photos/${type}_${crypto.randomUUID()}${ext}`;
-  const { url: fileUrl } = await put(blobName, file, { access: "public" });
+  const { url: fileUrl } = await put(blobName, file, { access: "private" });
 
   const submission: PhotoSubmission = {
     id: crypto.randomUUID(),
