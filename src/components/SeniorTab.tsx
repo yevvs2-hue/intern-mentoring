@@ -5,7 +5,7 @@ import { SeniorSubmission, PhotoSubmission } from "@/types";
 import { downloadPdf } from "@/lib/download-pdf";
 
 interface SeniorTabProps {
-  onSubmit: (data: Omit<SeniorSubmission, "id" | "submittedAt" | "employeeId">) => void | Promise<void>;
+  onSubmit: (data: Omit<SeniorSubmission, "id" | "submittedAt" | "employeeId">, photos: File[]) => Promise<void>;
   onPhotoSubmit: (formData: FormData) => Promise<void>;
   submissions: SeniorSubmission[];
   photos: PhotoSubmission[];
@@ -46,17 +46,7 @@ export default function SeniorTab({ onSubmit, onPhotoSubmit, submissions, photos
     }
     setSubmitting(true);
     try {
-      await onSubmit({ ...form });
-      for (const file of selectedPhotos) {
-        const fd = new FormData();
-        fd.append("type", "senior");
-        fd.append("internName", form.internName);
-        fd.append("department", form.department);
-        fd.append("date", form.date);
-        fd.append("caption", "");
-        fd.append("file", file);
-        await onPhotoSubmit(fd);
-      }
+      await onSubmit({ ...form }, selectedPhotos);
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 3000);
       setForm((prev) => ({ ...prev, topic: "", content: "", insights: "" }));

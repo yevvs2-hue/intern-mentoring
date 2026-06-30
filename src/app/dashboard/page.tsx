@@ -55,23 +55,25 @@ export default function DashboardPage() {
     router.push("/");
   };
 
-  const handleMentoringSubmit = async (data: Omit<MentoringSubmission, "id" | "submittedAt" | "employeeId">) => {
+  const handleMentoringSubmit = async (data: Omit<MentoringSubmission, "id" | "submittedAt" | "employeeId">, photos: File[]) => {
     if (!intern) return;
-    await fetch("/api/submissions/mentoring", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...data, employeeId: intern.employeeId, internName: intern.name }),
-    });
+    const fd = new FormData();
+    fd.append("employeeId", intern.employeeId);
+    fd.append("internName", intern.name);
+    Object.entries(data).forEach(([k, v]) => fd.append(k, v ?? ""));
+    photos.forEach((f) => fd.append("photos", f));
+    await fetch("/api/submissions/mentoring", { method: "POST", body: fd });
     await fetchSubmissions(intern.employeeId);
   };
 
-  const handleSeniorSubmit = async (data: Omit<SeniorSubmission, "id" | "submittedAt" | "employeeId">) => {
+  const handleSeniorSubmit = async (data: Omit<SeniorSubmission, "id" | "submittedAt" | "employeeId">, photos: File[]) => {
     if (!intern) return;
-    await fetch("/api/submissions/senior", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...data, employeeId: intern.employeeId, internName: intern.name }),
-    });
+    const fd = new FormData();
+    fd.append("employeeId", intern.employeeId);
+    fd.append("internName", intern.name);
+    Object.entries(data).forEach(([k, v]) => fd.append(k, v ?? ""));
+    photos.forEach((f) => fd.append("photos", f));
+    await fetch("/api/submissions/senior", { method: "POST", body: fd });
     await fetchSubmissions(intern.employeeId);
   };
 

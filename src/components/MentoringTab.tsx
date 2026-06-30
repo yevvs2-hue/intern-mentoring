@@ -5,7 +5,7 @@ import { MentoringSubmission, PhotoSubmission } from "@/types";
 import { downloadPdf } from "@/lib/download-pdf";
 
 interface MentoringTabProps {
-  onSubmit: (data: Omit<MentoringSubmission, "id" | "submittedAt" | "employeeId">) => void | Promise<void>;
+  onSubmit: (data: Omit<MentoringSubmission, "id" | "submittedAt" | "employeeId">, photos: File[]) => Promise<void>;
   onPhotoSubmit: (formData: FormData) => Promise<void>;
   submissions: MentoringSubmission[];
   photos: PhotoSubmission[];
@@ -47,17 +47,7 @@ export default function MentoringTab({ onSubmit, onPhotoSubmit, submissions, pho
     }
     setSubmitting(true);
     try {
-      await onSubmit({ ...form });
-      for (const file of selectedPhotos) {
-        const fd = new FormData();
-        fd.append("type", "mentoring");
-        fd.append("internName", form.internName);
-        fd.append("department", form.department);
-        fd.append("date", form.date);
-        fd.append("caption", "");
-        fd.append("file", file);
-        await onPhotoSubmit(fd);
-      }
+      await onSubmit({ ...form }, selectedPhotos);
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 3000);
       setForm((prev) => ({ ...prev, content: "", learned: "", nextPlan: "" }));
