@@ -192,8 +192,8 @@ export default function AdminPage() {
           <>
             {activeTab === "overview" && <OverviewTab data={data} />}
             {activeTab === "interns" && <InternManagementTab interns={data.interns} onRefresh={fetchData} />}
-            {activeTab === "mentoring" && <MentoringAdminTab submissions={data.mentoring} photos={data.photos} />}
-            {activeTab === "senior" && <SeniorAdminTab submissions={data.senior} photos={data.photos} />}
+            {activeTab === "mentoring" && <MentoringAdminTab submissions={data.mentoring} photos={data.photos} onRefresh={fetchData} />}
+            {activeTab === "senior" && <SeniorAdminTab submissions={data.senior} photos={data.photos} onRefresh={fetchData} />}
             {activeTab === "manual" && <ManualAdminTab submissions={data.manual} />}
           </>
         )}
@@ -620,9 +620,25 @@ function WeeklySection({ data }: { data: AllSubmissions }) {
   );
 }
 
-function MentoringAdminTab({ submissions, photos }: { submissions: MentoringSubmission[]; photos: PhotoSubmission[] }) {
+function MentoringAdminTab({ submissions, photos, onRefresh }: { submissions: MentoringSubmission[]; photos: PhotoSubmission[]; onRefresh: () => void }) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const myPhotos = photos.filter((p) => p.type === "mentoring");
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("이 제출 건을 삭제하시겠습니까?")) return;
+    setDeletingId(id);
+    try {
+      await fetch("/api/admin/submissions", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, type: "mentoring" }),
+      });
+      onRefresh();
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   if (submissions.length === 0) {
     return <EmptyState message="제출된 멘토링 활동일지가 없습니다." />;
@@ -671,6 +687,14 @@ function MentoringAdminTab({ submissions, photos }: { submissions: MentoringSubm
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-400">{s.date}</span>
                       <button type="button" onClick={() => downloadPdf(`/api/pdf/mentoring/${s.id}`, `멘토링활동일지_${s.internName}_${s.date}.pdf`)} className="text-xs text-blue-600 hover:text-blue-700 border border-blue-200 rounded px-2 py-0.5">PDF</button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(s.id)}
+                        disabled={deletingId === s.id}
+                        className="text-xs text-red-500 hover:text-red-700 border border-red-200 rounded px-2 py-0.5 disabled:opacity-40"
+                      >
+                        {deletingId === s.id ? "삭제 중..." : "삭제"}
+                      </button>
                     </div>
                   </div>
                   <p className="text-sm text-gray-700 whitespace-pre-wrap">{s.content}</p>
@@ -711,9 +735,25 @@ function MentoringAdminTab({ submissions, photos }: { submissions: MentoringSubm
   );
 }
 
-function SeniorAdminTab({ submissions, photos }: { submissions: SeniorSubmission[]; photos: PhotoSubmission[] }) {
+function SeniorAdminTab({ submissions, photos, onRefresh }: { submissions: SeniorSubmission[]; photos: PhotoSubmission[]; onRefresh: () => void }) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const myPhotos = photos.filter((p) => p.type === "senior");
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("이 제출 건을 삭제하시겠습니까?")) return;
+    setDeletingId(id);
+    try {
+      await fetch("/api/admin/submissions", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, type: "senior" }),
+      });
+      onRefresh();
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   if (submissions.length === 0) {
     return <EmptyState message="제출된 선배탐구 일지가 없습니다." />;
@@ -762,6 +802,14 @@ function SeniorAdminTab({ submissions, photos }: { submissions: SeniorSubmission
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-400">{s.date}</span>
                       <button type="button" onClick={() => downloadPdf(`/api/pdf/senior/${s.id}`, `선배탐구생활_${s.internName}_${s.date}.pdf`)} className="text-xs text-purple-600 hover:text-purple-700 border border-purple-200 rounded px-2 py-0.5">PDF</button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(s.id)}
+                        disabled={deletingId === s.id}
+                        className="text-xs text-red-500 hover:text-red-700 border border-red-200 rounded px-2 py-0.5 disabled:opacity-40"
+                      >
+                        {deletingId === s.id ? "삭제 중..." : "삭제"}
+                      </button>
                     </div>
                   </div>
                   <p className="text-xs text-gray-500 mb-2">{s.department} · 선배: {s.seniorName}</p>

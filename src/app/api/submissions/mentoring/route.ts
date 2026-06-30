@@ -4,6 +4,53 @@ import { MentoringSubmission, PhotoSubmission } from "@/types";
 import { put } from "@vercel/blob";
 import path from "path";
 
+export async function DELETE(req: NextRequest) {
+  const body = await req.json();
+  const { id, employeeId } = body as { id: string; employeeId: string };
+  if (!id || !employeeId) {
+    return NextResponse.json({ error: "id and employeeId are required" }, { status: 400 });
+  }
+  const store = await readStore();
+  const before = store.mentoring.length;
+  store.mentoring = store.mentoring.filter(
+    (s) => !(s.id === id && s.employeeId === employeeId)
+  );
+  if (store.mentoring.length === before) {
+    return NextResponse.json({ error: "Not found or forbidden" }, { status: 404 });
+  }
+  await writeStore(store);
+  return NextResponse.json({ success: true });
+}
+
+export async function PATCH(req: NextRequest) {
+  const body = await req.json();
+  const { id, employeeId, ...updatedFields } = body as {
+    id: string;
+    employeeId: string;
+    [key: string]: string;
+  };
+  if (!id || !employeeId) {
+    return NextResponse.json({ error: "id and employeeId are required" }, { status: 400 });
+  }
+  const store = await readStore();
+  const idx = store.mentoring.findIndex(
+    (s) => s.id === id && s.employeeId === employeeId
+  );
+  if (idx === -1) {
+    return NextResponse.json({ error: "Not found or forbidden" }, { status: 404 });
+  }
+  const immutable: (keyof MentoringSubmission)[] = ["id", "submittedAt", "employeeId", "internName"];
+  const updated = { ...store.mentoring[idx] };
+  for (const [key, value] of Object.entries(updatedFields)) {
+    if (!immutable.includes(key as keyof MentoringSubmission)) {
+      (updated as Record<string, string>)[key] = value;
+    }
+  }
+  store.mentoring[idx] = updated;
+  await writeStore(store);
+  return NextResponse.json({ submission: updated });
+}
+
 export async function POST(req: NextRequest) {
   const contentType = req.headers.get("content-type") ?? "";
 

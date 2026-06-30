@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-import { readStore } from "@/lib/store";
+import { NextRequest, NextResponse } from "next/server";
+import { readStore, writeStore } from "@/lib/store";
 
 export async function GET() {
   const store = await readStore();
@@ -11,4 +11,29 @@ export async function GET() {
     manual: store.manual,
     photos: store.photos ?? [],
   });
+}
+
+export async function DELETE(req: NextRequest) {
+  const body = await req.json();
+  const { id, type } = body as { id: string; type: "mentoring" | "senior" | "manual" };
+  if (!id || !type) {
+    return NextResponse.json({ error: "id and type are required" }, { status: 400 });
+  }
+  if (!["mentoring", "senior", "manual"].includes(type)) {
+    return NextResponse.json({ error: "Invalid type" }, { status: 400 });
+  }
+  const store = await readStore();
+  const before = store[type].length;
+  if (type === "mentoring") {
+    store.mentoring = store.mentoring.filter((s) => s.id !== id);
+  } else if (type === "senior") {
+    store.senior = store.senior.filter((s) => s.id !== id);
+  } else {
+    store.manual = store.manual.filter((s) => s.id !== id);
+  }
+  if (store[type].length === before) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  await writeStore(store);
+  return NextResponse.json({ success: true });
 }

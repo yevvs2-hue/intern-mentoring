@@ -91,6 +91,31 @@ export default function DashboardPage() {
     await fetchSubmissions(intern.employeeId);
   };
 
+  const handleMentoringDelete = async (id: string) => {
+    if (!intern) return;
+    await fetch("/api/submissions/mentoring", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, employeeId: intern.employeeId }),
+    });
+    await fetchSubmissions(intern.employeeId);
+  };
+
+  const handleSeniorDelete = async (id: string) => {
+    if (!intern) return;
+    await fetch("/api/submissions/senior", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, employeeId: intern.employeeId }),
+    });
+    await fetchSubmissions(intern.employeeId);
+  };
+
+  const handleRefresh = async () => {
+    if (!intern) return;
+    await fetchSubmissions(intern.employeeId);
+  };
+
   if (!intern) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -139,6 +164,8 @@ export default function DashboardPage() {
             onSubmit={handleMentoringSubmit}
             onPhotoSubmit={handlePhotoSubmit}
             photos={photoList}
+            onDelete={handleMentoringDelete}
+            onRefresh={handleRefresh}
           />
         )}
         {activeTab === "senior" && (
@@ -147,6 +174,8 @@ export default function DashboardPage() {
             onSubmit={handleSeniorSubmit}
             onPhotoSubmit={handlePhotoSubmit}
             photos={photoList}
+            onDelete={handleSeniorDelete}
+            onRefresh={handleRefresh}
           />
         )}
         {activeTab === "manual" && (

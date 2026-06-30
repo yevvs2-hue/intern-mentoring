@@ -9,9 +9,11 @@ interface MentoringTabProps {
   onPhotoSubmit: (formData: FormData) => Promise<void>;
   submissions: MentoringSubmission[];
   photos: PhotoSubmission[];
+  onDelete: (id: string) => Promise<void>;
+  onRefresh: () => Promise<void>;
 }
 
-export default function MentoringTab({ onSubmit, onPhotoSubmit, submissions, photos }: MentoringTabProps) {
+export default function MentoringTab({ onSubmit, onPhotoSubmit, submissions, photos, onDelete, onRefresh }: MentoringTabProps) {
   const [form, setForm] = useState({
     date: new Date().toISOString().slice(0, 10),
     internName: "",
@@ -194,7 +196,7 @@ export default function MentoringTab({ onSubmit, onPhotoSubmit, submissions, pho
           <h3 className="text-base font-semibold text-gray-700 mb-3">제출 내역 ({submissions.length}건)</h3>
           <div className="space-y-3">
             {submissions.slice().reverse().map((s) => (
-              <SubmissionCard key={s.id} submission={s} />
+              <SubmissionCard key={s.id} submission={s} onDelete={onDelete} onRefresh={onRefresh} />
             ))}
           </div>
         </div>
@@ -204,12 +206,64 @@ export default function MentoringTab({ onSubmit, onPhotoSubmit, submissions, pho
   );
 }
 
-function SubmissionCard({ submission: s }: { submission: MentoringSubmission }) {
+function SubmissionCard({
+  submission: s,
+  onDelete,
+  onRefresh,
+}: {
+  submission: MentoringSubmission;
+  onDelete: (id: string) => Promise<void>;
+  onRefresh: () => Promise<void>;
+}) {
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    date: s.date,
+    mentorName: s.mentorName,
+    department: s.department,
+    duration: s.duration,
+    content: s.content,
+    learned: s.learned,
+    nextPlan: s.nextPlan,
+  });
+
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setEditForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleDelete = async () => {
+    if (!confirm("이 제출 건을 삭제하시겠습니까?")) return;
+    setDeleting(true);
+    try {
+      await onDelete(s.id);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/submissions/mentoring", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: s.id, employeeId: s.employeeId, ...editForm }),
+      });
+      if (res.ok) {
+        setEditing(false);
+        await onRefresh();
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden">
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => { if (!editing) setOpen(!open); }}
         className="w-full text-left px-4 py-4 flex justify-between items-start hover:bg-gray-100 transition-colors"
       >
         <div>
@@ -218,7 +272,7 @@ function SubmissionCard({ submission: s }: { submission: MentoringSubmission }) 
           <span className="text-sm text-gray-500">{s.date}</span>
           {s.duration && <span className="text-xs text-gray-400 ml-2">({s.duration})</span>}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">멘토: {s.mentorName}</span>
           <button
             type="button"
@@ -227,15 +281,81 @@ function SubmissionCard({ submission: s }: { submission: MentoringSubmission }) 
           >
             PDF
           </button>
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); setEditing(true); setOpen(true); }}
+            className="text-xs text-gray-500 hover:text-gray-700 border border-gray-200 bg-white rounded-lg px-2 py-1"
+          >
+            수정
+          </button>
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); handleDelete(); }}
+            disabled={deleting}
+            className="text-xs text-red-500 hover:text-red-700 border border-red-200 bg-white rounded-lg px-2 py-1 disabled:opacity-40"
+          >
+            {deleting ? "삭제 중..." : "삭제"}
+          </button>
           <span className="text-gray-400 text-xs">{open ? "▲" : "▼"}</span>
         </div>
       </button>
-      {open && (
+      {open && !editing && (
         <div className="px-4 pb-4 space-y-3 border-t border-gray-100">
           <DetailRow label="소속 부서" value={s.department} />
           <DetailRow label="활동 내용" value={s.content} />
           <DetailRow label="배운 점 / 느낀 점" value={s.learned} />
           {s.nextPlan && <DetailRow label="다음 계획" value={s.nextPlan} />}
+        </div>
+      )}
+      {open && editing && (
+        <div className="px-4 pb-4 border-t border-gray-100 space-y-3 pt-4">
+          <div className="grid grid-cols-2 gap-3">
+            <EditField label="활동 날짜">
+              <input type="date" name="date" value={editForm.date} onChange={handleEditChange} className={inputCls} />
+            </EditField>
+            <EditField label="소속 부서">
+              <input name="department" value={editForm.department} onChange={handleEditChange} className={inputCls} />
+            </EditField>
+          </div>
+          <EditField label="멘토 이름">
+            <input name="mentorName" value={editForm.mentorName} onChange={handleEditChange} className={inputCls} />
+          </EditField>
+          <EditField label="활동 시간">
+            <select name="duration" value={editForm.duration} onChange={handleEditChange} className={inputCls}>
+              <option value="">선택</option>
+              <option>30분</option>
+              <option>1시간</option>
+              <option>1시간 30분</option>
+              <option>2시간</option>
+              <option>2시간 이상</option>
+            </select>
+          </EditField>
+          <EditField label="활동 내용">
+            <textarea name="content" value={editForm.content} onChange={handleEditChange} rows={4} className={textareaCls} />
+          </EditField>
+          <EditField label="배운 점 / 느낀 점">
+            <textarea name="learned" value={editForm.learned} onChange={handleEditChange} rows={3} className={textareaCls} />
+          </EditField>
+          <EditField label="다음 계획">
+            <textarea name="nextPlan" value={editForm.nextPlan} onChange={handleEditChange} rows={2} className={textareaCls} />
+          </EditField>
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+            >
+              {saving ? "저장 중..." : "수정 완료"}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setEditing(false); setEditForm({ date: s.date, mentorName: s.mentorName, department: s.department, duration: s.duration, content: s.content, learned: s.learned, nextPlan: s.nextPlan }); }}
+              className="text-sm text-gray-500 hover:text-gray-700 border border-gray-200 px-4 py-2 rounded-lg transition-colors"
+            >
+              취소
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -257,6 +377,15 @@ function Field({ label, required, children }: { label: string; required?: boolea
       <label className="block text-sm font-medium text-gray-700 mb-1">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
+      {children}
+    </div>
+  );
+}
+
+function EditField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
       {children}
     </div>
   );
