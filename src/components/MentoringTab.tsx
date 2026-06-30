@@ -84,7 +84,7 @@ export default function MentoringTab({ onSubmit, onPhotoSubmit, submissions, pho
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-5">
         <div className="grid grid-cols-2 gap-4">
           <Field label="활동 날짜" required>
-            <input type="date" name="date" value={form.date} onChange={handleChange} required min="2026-07-06" max="2026-07-31" className={inputCls} />
+            <input type="date" name="date" value={form.date} onChange={handleChange} required className={inputCls} />
           </Field>
           <Field label="소속 부서" required>
             <input name="department" value={form.department} onChange={handleChange} required placeholder="예: 개발팀" className={inputCls} />

@@ -118,7 +118,6 @@ export default function PhotoTab({ type, onSubmit, submissions }: PhotoTabProps)
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">활동 날짜 <span className="text-red-500">*</span></label>
           <input type="date" value={date} onChange={e => setDate(e.target.value)} required
-            min="2026-07-06" max="2026-07-31"
             className={`w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${ringColor} focus:border-transparent`} />
         </div>
 
