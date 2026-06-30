@@ -62,7 +62,7 @@ export default function SeniorTab({ onSubmit, onPhotoSubmit, submissions, photos
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-800">선배와의 탐구생활 제출</h2>
+        <h2 className="text-xl font-bold text-gray-800">선배 탐구생활 제출</h2>
         <p className="text-sm text-gray-500 mt-1">선배와의 만남을 통해 탐구한 내용을 기록해 주세요.</p>
       </div>
 

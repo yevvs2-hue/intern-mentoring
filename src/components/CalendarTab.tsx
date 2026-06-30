@@ -46,7 +46,7 @@ export default function CalendarTab({ mentoringList, seniorList, manualList }: C
       {/* 현황 요약 */}
       <div className="grid grid-cols-3 gap-4 mb-8">
         <SummaryCard label="멘토링 활동일지" count={mentoringList.length} color="blue" icon="📝" />
-        <SummaryCard label="선배와의 탐구생활" count={seniorList.length} color="purple" icon="🔍" />
+        <SummaryCard label="선배 탐구생활" count={seniorList.length} color="purple" icon="🔍" />
         <SummaryCard label="우리팀 사용 설명서" count={manualList.length} color="green" icon="📖" />
       </div>
 
@@ -118,7 +118,7 @@ export default function CalendarTab({ mentoringList, seniorList, manualList }: C
       {/* 범례 */}
       <div className="flex gap-4 mt-4 text-sm text-gray-500">
         <span className="flex items-center gap-1"><span className="w-3 h-3 bg-blue-100 rounded" /> 멘토링 활동일지</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 bg-purple-100 rounded" /> 선배와의 탐구생활</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 bg-purple-100 rounded" /> 선배 탐구생활</span>
       </div>
 
       {/* 최근 제출 목록 */}
@@ -128,7 +128,7 @@ export default function CalendarTab({ mentoringList, seniorList, manualList }: C
           <div className="space-y-2">
             {[
               ...mentoringList.map((s) => ({ type: "멘토링 활동일지", name: s.internName, date: s.date, color: "blue" })),
-              ...seniorList.map((s) => ({ type: "선배와의 탐구생활", name: s.internName, date: s.date, color: "purple" })),
+              ...seniorList.map((s) => ({ type: "선배 탐구생활", name: s.internName, date: s.date, color: "purple" })),
               ...manualList.map((s) => ({ type: "우리팀 사용 설명서", name: s.internName, date: s.submittedAt.slice(0, 10), color: "green" })),
             ]
               .sort((a, b) => b.date.localeCompare(a.date))

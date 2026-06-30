@@ -9,7 +9,7 @@ interface Tab {
 const tabs: Tab[] = [
   { id: "home", label: "홈", icon: "🏠" },
   { id: "mentoring", label: "멘토링 활동일지", icon: "📝" },
-  { id: "senior", label: "선배와의 탐구생활", icon: "🔍" },
+  { id: "senior", label: "선배 탐구생활", icon: "🔍" },
   { id: "manual", label: "발표 자료", icon: "📖" },
 ];
 

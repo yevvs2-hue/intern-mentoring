@@ -141,7 +141,7 @@ export function SeniorPDF({ s, photos = [] }: { s: SeniorSubmission; photos?: Ph
         <View style={base.header}>
           <View style={base.headerTop}>
             <View>
-              <Text style={base.title}>선배와의 탐구생활</Text>
+              <Text style={base.title}>선배 탐구생활</Text>
               <Text style={base.subtitle}>2026 하반기 체험형 인턴 - 멘토링 프로그램</Text>
             </View>
             <View style={[base.badge, { backgroundColor: c.purple }]}>
@@ -181,7 +181,7 @@ export function SeniorPDF({ s, photos = [] }: { s: SeniorSubmission; photos?: Ph
         <PhotoSection photos={photos} dot={c.purple} />
 
         <View style={base.footer}>
-          <Text style={base.footerText}>2026 하반기 체험형 인턴 - 선배와의 탐구생활</Text>
+          <Text style={base.footerText}>2026 하반기 체험형 인턴 - 선배 탐구생활</Text>
           <Text style={base.footerText}>{s.internName} · {s.employeeId}</Text>
         </View>
       </Page>

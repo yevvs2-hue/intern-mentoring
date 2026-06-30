@@ -16,7 +16,7 @@ function formatBytes(bytes: number) {
 
 const LABEL = {
   mentoring: { title: "멘토링 활동 사진", desc: "멘토링 활동 중 촬영한 사진을 업로드해 주세요.", color: "blue" },
-  senior: { title: "선배탐구 활동 사진", desc: "선배와의 탐구생활 활동 사진을 업로드해 주세요.", color: "purple" },
+  senior: { title: "선배탐구 활동 사진", desc: "선배 탐구생활 활동 사진을 업로드해 주세요.", color: "purple" },
 };
 
 export default function PhotoTab({ type, onSubmit, submissions }: PhotoTabProps) {
