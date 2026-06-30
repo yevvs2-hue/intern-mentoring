@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import TabNav from "@/components/TabNav";
 import HomeTab from "@/components/HomeTab";
 import CalendarTab from "@/components/CalendarTab";
@@ -11,14 +11,20 @@ import ManualTab from "@/components/ManualTab";
 import PhotoTab from "@/components/PhotoTab";
 import { MentoringSubmission, SeniorSubmission, ManualSubmission, PhotoSubmission, Intern } from "@/types";
 
-export default function DashboardPage() {
+function DashboardInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [intern, setIntern] = useState<Intern | null>(null);
-  const [activeTab, setActiveTab] = useState("home");
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") ?? "home");
   const [mentoringList, setMentoringList] = useState<MentoringSubmission[]>([]);
   const [seniorList, setSeniorList] = useState<SeniorSubmission[]>([]);
   const [manualList, setManualList] = useState<ManualSubmission[]>([]);
   const [photoList, setPhotoList] = useState<PhotoSubmission[]>([]);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    router.replace(`/dashboard?tab=${tab}`, { scroll: false });
+  };
 
   const fetchSubmissions = useCallback(async (employeeId: string) => {
     try {
@@ -147,7 +153,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <TabNav activeTab={activeTab} onChange={setActiveTab} />
+      <TabNav activeTab={activeTab} onChange={handleTabChange} />
 
       <main>
         {activeTab === "home" && (
@@ -186,5 +192,17 @@ export default function DashboardPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-400 text-sm">로딩 중...</div>
+      </div>
+    }>
+      <DashboardInner />
+    </Suspense>
   );
 }
