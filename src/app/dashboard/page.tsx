@@ -60,7 +60,7 @@ export default function DashboardPage() {
     await fetch("/api/submissions/mentoring", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...data, employeeId: intern.employeeId }),
+      body: JSON.stringify({ ...data, employeeId: intern.employeeId, internName: intern.name }),
     });
     await fetchSubmissions(intern.employeeId);
   };
@@ -70,7 +70,7 @@ export default function DashboardPage() {
     await fetch("/api/submissions/senior", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...data, employeeId: intern.employeeId }),
+      body: JSON.stringify({ ...data, employeeId: intern.employeeId, internName: intern.name }),
     });
     await fetchSubmissions(intern.employeeId);
   };

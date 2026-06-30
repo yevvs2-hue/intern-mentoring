@@ -149,12 +149,20 @@ export default function AdminPage() {
               <p className="text-xs font-medium text-blue-900">멘토링 프로그램 · 관리자</p>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors"
-          >
-            로그아웃
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={fetchData}
+              className="text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors"
+            >
+              새로고침
+            </button>
+            <button
+              onClick={handleLogout}
+              className="text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors"
+            >
+              로그아웃
+            </button>
+          </div>
         </div>
       </header>
 
