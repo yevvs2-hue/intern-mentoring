@@ -715,8 +715,8 @@ function MentoringAdminTab({ submissions, photos, onRefresh }: { submissions: Me
                       <span className="text-xs font-medium text-gray-400 block mb-2">📸 활동 사진 ({datePhotos.length}장)</span>
                       <div className="grid grid-cols-3 gap-2">
                         {datePhotos.map((p) => (
-                          <a key={p.id} href={p.fileUrl} target="_blank" rel="noopener noreferrer">
-                            <img src={p.fileUrl} alt={p.caption} className="w-full h-24 object-cover rounded-lg hover:opacity-90 transition-opacity" />
+                          <a key={p.id} href={`/api/photos/${p.id}`} target="_blank" rel="noopener noreferrer">
+                            <img src={`/api/photos/${p.id}`} alt={p.caption} className="w-full h-24 object-cover rounded-lg hover:opacity-90 transition-opacity" />
                             {p.caption && <p className="text-[10px] text-gray-400 mt-0.5 truncate">{p.caption}</p>}
                           </a>
                         ))}
@@ -825,8 +825,8 @@ function SeniorAdminTab({ submissions, photos, onRefresh }: { submissions: Senio
                       <span className="text-xs font-medium text-gray-400 block mb-2">📷 활동 사진 ({datePhotos.length}장)</span>
                       <div className="grid grid-cols-3 gap-2">
                         {datePhotos.map((p) => (
-                          <a key={p.id} href={p.fileUrl} target="_blank" rel="noopener noreferrer">
-                            <img src={p.fileUrl} alt={p.caption} className="w-full h-24 object-cover rounded-lg hover:opacity-90 transition-opacity" />
+                          <a key={p.id} href={`/api/photos/${p.id}`} target="_blank" rel="noopener noreferrer">
+                            <img src={`/api/photos/${p.id}`} alt={p.caption} className="w-full h-24 object-cover rounded-lg hover:opacity-90 transition-opacity" />
                             {p.caption && <p className="text-[10px] text-gray-400 mt-0.5 truncate">{p.caption}</p>}
                           </a>
                         ))}

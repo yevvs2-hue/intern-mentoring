@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { readStore } from "@/lib/store";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const archiver = require("archiver") as (format: string, options?: object) => import("archiver").Archiver;
-import fs from "fs";
-import path from "path";
-import { PassThrough } from "stream";
+import { PassThrough, Readable } from "stream";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -24,11 +22,17 @@ export async function GET(req: NextRequest) {
   archive.pipe(pass);
 
   for (const photo of photos) {
-    const filePath = path.join(process.cwd(), "public", photo.fileUrl);
-    if (fs.existsSync(filePath)) {
+    try {
+      const res = await fetch(photo.fileUrl, {
+        headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+      });
+      if (!res.ok) continue;
+      const buffer = await res.arrayBuffer();
       const folder = photo.type === "mentoring" ? "멘토링사진" : "선배탐구사진";
       const safeName = `${photo.date}_${photo.internName}_${photo.fileName}`;
-      archive.file(filePath, { name: `${folder}/${safeName}` });
+      archive.append(Readable.from(Buffer.from(buffer)), { name: `${folder}/${safeName}` });
+    } catch {
+      continue;
     }
   }
 
