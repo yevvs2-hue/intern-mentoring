@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readStore, writeStore } from "@/lib/store";
+import { mutateStore } from "@/lib/store";
 import { MentoringSubmission, PhotoSubmission } from "@/types";
 import { put } from "@vercel/blob";
 import path from "path";
@@ -10,15 +10,16 @@ export async function DELETE(req: NextRequest) {
   if (!id || !employeeId) {
     return NextResponse.json({ error: "id and employeeId are required" }, { status: 400 });
   }
-  const store = await readStore();
-  const before = store.mentoring.length;
-  store.mentoring = store.mentoring.filter(
-    (s) => !(s.id === id && s.employeeId === employeeId)
-  );
-  if (store.mentoring.length === before) {
+  const found = await mutateStore((store) => {
+    const before = store.mentoring.length;
+    store.mentoring = store.mentoring.filter(
+      (s) => !(s.id === id && s.employeeId === employeeId)
+    );
+    return store.mentoring.length !== before;
+  });
+  if (!found) {
     return NextResponse.json({ error: "Not found or forbidden" }, { status: 404 });
   }
-  await writeStore(store);
   return NextResponse.json({ success: true });
 }
 
@@ -32,22 +33,24 @@ export async function PATCH(req: NextRequest) {
   if (!id || !employeeId) {
     return NextResponse.json({ error: "id and employeeId are required" }, { status: 400 });
   }
-  const store = await readStore();
-  const idx = store.mentoring.findIndex(
-    (s) => s.id === id && s.employeeId === employeeId
-  );
-  if (idx === -1) {
+  const updated = await mutateStore((store) => {
+    const idx = store.mentoring.findIndex(
+      (s) => s.id === id && s.employeeId === employeeId
+    );
+    if (idx === -1) return null;
+    const immutable: (keyof MentoringSubmission)[] = ["id", "submittedAt", "employeeId", "internName"];
+    const updated = { ...store.mentoring[idx] };
+    for (const [key, value] of Object.entries(updatedFields)) {
+      if (!immutable.includes(key as keyof MentoringSubmission)) {
+        (updated as Record<string, string>)[key] = value;
+      }
+    }
+    store.mentoring[idx] = updated;
+    return updated;
+  });
+  if (!updated) {
     return NextResponse.json({ error: "Not found or forbidden" }, { status: 404 });
   }
-  const immutable: (keyof MentoringSubmission)[] = ["id", "submittedAt", "employeeId", "internName"];
-  const updated = { ...store.mentoring[idx] };
-  for (const [key, value] of Object.entries(updatedFields)) {
-    if (!immutable.includes(key as keyof MentoringSubmission)) {
-      (updated as Record<string, string>)[key] = value;
-    }
-  }
-  store.mentoring[idx] = updated;
-  await writeStore(store);
   return NextResponse.json({ submission: updated });
 }
 
@@ -92,12 +95,11 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 단일 읽기-쓰기
-    const store = await readStore();
-    store.mentoring.push(mentoring);
-    if (!store.photos) store.photos = [];
-    store.photos.push(...photos);
-    await writeStore(store);
+    await mutateStore((store) => {
+      store.mentoring.push(mentoring);
+      if (!store.photos) store.photos = [];
+      store.photos.push(...photos);
+    });
 
     return NextResponse.json({ submission: mentoring, photos });
   }
@@ -112,8 +114,8 @@ export async function POST(req: NextRequest) {
     submittedAt: new Date().toISOString(),
     ...body,
   };
-  const store = await readStore();
-  store.mentoring.push(submission);
-  await writeStore(store);
+  await mutateStore((store) => {
+    store.mentoring.push(submission);
+  });
   return NextResponse.json({ submission });
 }

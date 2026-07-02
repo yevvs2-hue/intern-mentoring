@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readStore, writeStore } from "@/lib/store";
+import { mutateStore } from "@/lib/store";
 import { SeniorSubmission, PhotoSubmission } from "@/types";
 import { put } from "@vercel/blob";
 import path from "path";
@@ -10,15 +10,16 @@ export async function DELETE(req: NextRequest) {
   if (!id || !employeeId) {
     return NextResponse.json({ error: "id and employeeId are required" }, { status: 400 });
   }
-  const store = await readStore();
-  const before = store.senior.length;
-  store.senior = store.senior.filter(
-    (s) => !(s.id === id && s.employeeId === employeeId)
-  );
-  if (store.senior.length === before) {
+  const found = await mutateStore((store) => {
+    const before = store.senior.length;
+    store.senior = store.senior.filter(
+      (s) => !(s.id === id && s.employeeId === employeeId)
+    );
+    return store.senior.length !== before;
+  });
+  if (!found) {
     return NextResponse.json({ error: "Not found or forbidden" }, { status: 404 });
   }
-  await writeStore(store);
   return NextResponse.json({ success: true });
 }
 
@@ -32,22 +33,24 @@ export async function PATCH(req: NextRequest) {
   if (!id || !employeeId) {
     return NextResponse.json({ error: "id and employeeId are required" }, { status: 400 });
   }
-  const store = await readStore();
-  const idx = store.senior.findIndex(
-    (s) => s.id === id && s.employeeId === employeeId
-  );
-  if (idx === -1) {
+  const updated = await mutateStore((store) => {
+    const idx = store.senior.findIndex(
+      (s) => s.id === id && s.employeeId === employeeId
+    );
+    if (idx === -1) return null;
+    const immutable: (keyof SeniorSubmission)[] = ["id", "submittedAt", "employeeId", "internName"];
+    const updated = { ...store.senior[idx] };
+    for (const [key, value] of Object.entries(updatedFields)) {
+      if (!immutable.includes(key as keyof SeniorSubmission)) {
+        (updated as Record<string, string>)[key] = value;
+      }
+    }
+    store.senior[idx] = updated;
+    return updated;
+  });
+  if (!updated) {
     return NextResponse.json({ error: "Not found or forbidden" }, { status: 404 });
   }
-  const immutable: (keyof SeniorSubmission)[] = ["id", "submittedAt", "employeeId", "internName"];
-  const updated = { ...store.senior[idx] };
-  for (const [key, value] of Object.entries(updatedFields)) {
-    if (!immutable.includes(key as keyof SeniorSubmission)) {
-      (updated as Record<string, string>)[key] = value;
-    }
-  }
-  store.senior[idx] = updated;
-  await writeStore(store);
   return NextResponse.json({ submission: updated });
 }
 
@@ -90,11 +93,11 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const store = await readStore();
-    store.senior.push(senior);
-    if (!store.photos) store.photos = [];
-    store.photos.push(...photos);
-    await writeStore(store);
+    await mutateStore((store) => {
+      store.senior.push(senior);
+      if (!store.photos) store.photos = [];
+      store.photos.push(...photos);
+    });
 
     return NextResponse.json({ submission: senior, photos });
   }
@@ -109,8 +112,8 @@ export async function POST(req: NextRequest) {
     submittedAt: new Date().toISOString(),
     ...body,
   };
-  const store = await readStore();
-  store.senior.push(submission);
-  await writeStore(store);
+  await mutateStore((store) => {
+    store.senior.push(submission);
+  });
   return NextResponse.json({ submission });
 }

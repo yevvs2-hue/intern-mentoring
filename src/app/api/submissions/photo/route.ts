@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readStore, writeStore } from "@/lib/store";
+import { mutateStore } from "@/lib/store";
 import { PhotoSubmission } from "@/types";
 import { put } from "@vercel/blob";
 import path from "path";
@@ -42,10 +42,10 @@ export async function POST(req: NextRequest) {
     submittedAt: new Date().toISOString(),
   };
 
-  const store = await readStore();
-  if (!store.photos) store.photos = [];
-  store.photos.push(submission);
-  await writeStore(store);
+  await mutateStore((store) => {
+    if (!store.photos) store.photos = [];
+    store.photos.push(submission);
+  });
 
   return NextResponse.json({ submission });
 }

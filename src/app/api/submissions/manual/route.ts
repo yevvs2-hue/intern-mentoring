@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readStore, writeStore } from "@/lib/store";
+import { mutateStore } from "@/lib/store";
 import { ManualSubmission } from "@/types";
-import fs from "fs";
+import { put } from "@vercel/blob";
 import path from "path";
-
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -32,14 +30,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "PPT, PDF, 동영상 파일만 업로드할 수 있습니다." }, { status: 400 });
   }
 
-  await fs.promises.mkdir(UPLOAD_DIR, { recursive: true });
-
   const ext = path.extname(file.name);
-  const savedName = `${crypto.randomUUID()}${ext}`;
-  const savedPath = path.join(UPLOAD_DIR, savedName);
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await fs.promises.writeFile(savedPath, buffer);
+  const blobName = `manuals/${crypto.randomUUID()}${ext}`;
+  const { url: fileUrl } = await put(blobName, file, { access: "private" });
 
   const submission: ManualSubmission = {
     id: crypto.randomUUID(),
@@ -48,14 +41,14 @@ export async function POST(req: NextRequest) {
     department,
     description,
     fileName: file.name,
-    fileUrl: `/uploads/${savedName}`,
+    fileUrl,
     fileSize: file.size,
     submittedAt: new Date().toISOString(),
   };
 
-  const store = await readStore();
-  store.manual.push(submission);
-  await writeStore(store);
+  await mutateStore((store) => {
+    store.manual.push(submission);
+  });
 
   return NextResponse.json({ submission });
 }

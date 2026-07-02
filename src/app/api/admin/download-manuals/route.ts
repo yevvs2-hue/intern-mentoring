@@ -23,10 +23,25 @@ export async function GET() {
   let added = 0;
   for (const manual of manuals) {
     if (!manual.fileUrl) continue;
-    const filePath = path.join(process.cwd(), "public", manual.fileUrl);
-    if (fs.existsSync(filePath)) {
-      const safeName = `${manual.internName}_${manual.fileName}`;
-      archive.file(filePath, { name: safeName });
+    const safeName = `${manual.internName}_${manual.fileName}`;
+
+    // 구버전: 로컬 파일시스템에 저장된 자료 (/uploads/xxx)
+    if (manual.fileUrl.startsWith("/uploads/")) {
+      const filePath = path.join(process.cwd(), "public", manual.fileUrl);
+      if (fs.existsSync(filePath)) {
+        archive.file(filePath, { name: safeName });
+        added++;
+      }
+      continue;
+    }
+
+    // 신버전: Vercel Blob private URL
+    const res = await fetch(manual.fileUrl, {
+      headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+    });
+    if (res.ok) {
+      const buffer = Buffer.from(await res.arrayBuffer());
+      archive.append(buffer, { name: safeName });
       added++;
     }
   }

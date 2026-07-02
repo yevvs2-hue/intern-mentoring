@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readStore, writeStore } from "@/lib/store";
+import { readStore } from "@/lib/store";
 
 export async function POST(req: NextRequest) {
   const { name, employeeId } = await req.json();

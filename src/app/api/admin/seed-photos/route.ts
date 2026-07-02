@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readStore, writeStore } from "@/lib/store";
+import { mutateStore } from "@/lib/store";
 import { PhotoSubmission } from "@/types";
 
 export async function POST(req: NextRequest) {
@@ -7,14 +7,14 @@ export async function POST(req: NextRequest) {
     photos: Omit<PhotoSubmission, "id" | "submittedAt">[];
   };
 
-  const store = await readStore();
-  if (!store.photos) store.photos = [];
+  const count = await mutateStore((store) => {
+    if (!store.photos) store.photos = [];
+    const now = new Date().toISOString();
+    for (const p of photos) {
+      store.photos.push({ ...p, id: crypto.randomUUID(), submittedAt: now });
+    }
+    return store.photos.length;
+  });
 
-  const now = new Date().toISOString();
-  for (const p of photos) {
-    store.photos.push({ ...p, id: crypto.randomUUID(), submittedAt: now });
-  }
-
-  await writeStore(store);
-  return NextResponse.json({ photos: store.photos.length });
+  return NextResponse.json({ photos: count });
 }
