@@ -1,4 +1,4 @@
-export type SubmissionType = "mentoring" | "senior" | "manual";
+export type SubmissionType = "mentoring" | "senior" | "manual" | "plan";
 
 export interface MentoringSubmission {
   id: string;
@@ -54,6 +54,7 @@ export interface Intern {
 export interface PhotoSubmission {
   id: string;
   type: "mentoring" | "senior";
+  submissionId?: string;
   employeeId: string;
   internName: string;
   department: string;
@@ -65,10 +66,23 @@ export interface PhotoSubmission {
   submittedAt: string;
 }
 
+export interface PlanSubmission {
+  id: string;
+  employeeId: string;
+  internName: string;
+  department: string;
+  mentorName: string;
+  mentoringPlan: string;
+  seniorPlan: string;
+  goal: string;
+  submittedAt: string;
+}
+
 export interface SubmissionsStore {
   interns: Intern[];
   mentoring: MentoringSubmission[];
   senior: SeniorSubmission[];
   manual: ManualSubmission[];
   photos: PhotoSubmission[];
+  plan: PlanSubmission[];
 }

@@ -9,7 +9,8 @@ import MentoringTab from "@/components/MentoringTab";
 import SeniorTab from "@/components/SeniorTab";
 import ManualTab from "@/components/ManualTab";
 import PhotoTab from "@/components/PhotoTab";
-import { MentoringSubmission, SeniorSubmission, ManualSubmission, PhotoSubmission, Intern } from "@/types";
+import PlanTab from "@/components/PlanTab";
+import { MentoringSubmission, SeniorSubmission, ManualSubmission, PhotoSubmission, PlanSubmission, Intern } from "@/types";
 
 function DashboardInner() {
   const router = useRouter();
@@ -20,6 +21,7 @@ function DashboardInner() {
   const [seniorList, setSeniorList] = useState<SeniorSubmission[]>([]);
   const [manualList, setManualList] = useState<ManualSubmission[]>([]);
   const [photoList, setPhotoList] = useState<PhotoSubmission[]>([]);
+  const [plan, setPlan] = useState<PlanSubmission | null>(null);
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -35,6 +37,7 @@ function DashboardInner() {
         setSeniorList(data.senior ?? []);
         setManualList(data.manual ?? []);
         setPhotoList(data.photos ?? []);
+        setPlan(data.plan ?? null);
       }
     } catch {
       // silently fail — data will remain empty
@@ -59,6 +62,16 @@ function DashboardInner() {
   const handleLogout = () => {
     localStorage.removeItem("internUser");
     router.push("/");
+  };
+
+  const handlePlanSubmit = async (data: Omit<PlanSubmission, "id" | "submittedAt" | "employeeId" | "internName">) => {
+    if (!intern) return;
+    await fetch("/api/submissions/plan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...data, employeeId: intern.employeeId, internName: intern.name }),
+    });
+    await fetchSubmissions(intern.employeeId);
   };
 
   const handleMentoringSubmit = async (data: Omit<MentoringSubmission, "id" | "submittedAt" | "employeeId">, photos: File[]) => {
@@ -162,7 +175,11 @@ function DashboardInner() {
             mentoringList={mentoringList}
             seniorList={seniorList}
             manualList={manualList}
+            plan={plan}
           />
+        )}
+        {activeTab === "plan" && (
+          <PlanTab plan={plan} onSubmit={handlePlanSubmit} />
         )}
         {activeTab === "mentoring" && (
           <MentoringTab

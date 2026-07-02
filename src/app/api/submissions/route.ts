@@ -16,5 +16,6 @@ export async function GET(req: NextRequest) {
     senior: store.senior.filter((s) => s.employeeId === employeeId),
     manual: store.manual.filter((s) => s.employeeId === employeeId),
     photos: (store.photos ?? []).filter((s) => s.employeeId === employeeId),
+    plan: (store.plan ?? []).find((s) => s.employeeId === employeeId) ?? null,
   });
 }

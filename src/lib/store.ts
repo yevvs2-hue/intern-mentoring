@@ -6,7 +6,7 @@ const LOCK_PATH = "data/submissions.lock";
 const LOCK_TTL_MS = 15_000;
 const LOCK_ACQUIRE_TIMEOUT_MS = 10_000;
 
-const INITIAL: SubmissionsStore = { interns: [], mentoring: [], senior: [], manual: [], photos: [] };
+const INITIAL: SubmissionsStore = { interns: [], mentoring: [], senior: [], manual: [], photos: [], plan: [] };
 
 export async function readStore(): Promise<SubmissionsStore> {
   try {

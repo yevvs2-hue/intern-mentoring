@@ -84,7 +84,7 @@ export default function PhotoTab({ type, onSubmit, submissions }: PhotoTabProps)
   const mySubmissions = submissions.filter((s) => s.type === type);
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
+    <div className="p-6 max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto">
       <div className="mb-6">
         <h2 className="text-xl font-bold text-gray-800">{title}</h2>
         <p className="text-sm text-gray-500 mt-1">{desc}</p>

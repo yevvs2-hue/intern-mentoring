@@ -29,8 +29,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   if (!s) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const rawPhotos = (store.photos ?? []).filter(
-    (p) => p.type === "mentoring" && p.employeeId === s.employeeId && p.date === s.date
+  const rawPhotos = (store.photos ?? []).filter((p) =>
+    p.type === "mentoring" &&
+    (p.submissionId ? p.submissionId === s.id : p.employeeId === s.employeeId && p.date === s.date)
   );
   const photos = await resolvePhotos(rawPhotos);
 

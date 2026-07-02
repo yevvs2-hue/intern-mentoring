@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import * as XLSX from "xlsx";
 import { downloadPdf } from "@/lib/download-pdf";
-import { MentoringSubmission, SeniorSubmission, ManualSubmission, PhotoSubmission, Intern } from "@/types";
+import { MentoringSubmission, SeniorSubmission, ManualSubmission, PhotoSubmission, PlanSubmission, Intern } from "@/types";
 
 interface AllSubmissions {
   interns: Intern[];
@@ -11,9 +11,10 @@ interface AllSubmissions {
   senior: SeniorSubmission[];
   manual: ManualSubmission[];
   photos: PhotoSubmission[];
+  plan: PlanSubmission[];
 }
 
-type AdminTab = "overview" | "interns" | "mentoring" | "senior" | "manual";
+type AdminTab = "overview" | "interns" | "plan" | "mentoring" | "senior" | "manual";
 
 export default function AdminPage() {
   const [isAuthed, setIsAuthed] = useState(false);
@@ -133,9 +134,10 @@ export default function AdminPage() {
   const adminTabs: { id: AdminTab; label: string; icon: string }[] = [
     { id: "overview", label: "현황", icon: "📊" },
     { id: "interns", label: "인턴 관리", icon: "👤" },
+    { id: "plan", label: "계획서", icon: "📋" },
     { id: "mentoring", label: "멘토링", icon: "📝" },
     { id: "senior", label: "선배탐구", icon: "🔍" },
-    { id: "manual", label: "발표 자료", icon: "📖" },
+    { id: "manual", label: "멘토링 리뷰", icon: "📖" },
   ];
 
   return (
@@ -192,6 +194,7 @@ export default function AdminPage() {
           <>
             {activeTab === "overview" && <OverviewTab data={data} />}
             {activeTab === "interns" && <InternManagementTab interns={data.interns} onRefresh={fetchData} />}
+            {activeTab === "plan" && <PlanAdminTab plans={data.plan ?? []} />}
             {activeTab === "mentoring" && <MentoringAdminTab submissions={data.mentoring} photos={data.photos} onRefresh={fetchData} />}
             {activeTab === "senior" && <SeniorAdminTab submissions={data.senior} photos={data.photos} onRefresh={fetchData} />}
             {activeTab === "manual" && <ManualAdminTab submissions={data.manual} />}
@@ -458,7 +461,7 @@ function OverviewTab({ data }: { data: AllSubmissions }) {
         <div className="rounded-2xl border border-green-100 bg-green-50 p-4">
           <div className="text-2xl mb-1">📖</div>
           <div className="text-2xl font-bold text-green-700">{manualComplete}<span className="text-sm font-normal text-green-400">/{n}</span></div>
-          <div className="text-xs text-green-600 mt-0.5">발표자료 제출 (1회)</div>
+          <div className="text-xs text-green-600 mt-0.5">멘토링 리뷰 제출 (1회)</div>
         </div>
       </div>
 
@@ -486,7 +489,7 @@ function OverviewTab({ data }: { data: AllSubmissions }) {
               <span>이름</span>
               <span className="text-center w-24">멘토링 (3회)</span>
               <span className="text-center w-24">선배탐구 (3회)</span>
-              <span className="text-center w-20">발표자료 (1회)</span>
+              <span className="text-center w-20">멘토링 리뷰 (1회)</span>
               <span className="text-center w-12">완료</span>
             </div>
             {data.interns.map((intern) => {
@@ -571,7 +574,7 @@ function WeeklySection({ data }: { data: AllSubmissions }) {
               <div className="flex items-center gap-3 text-xs">
                 <span className="bg-blue-50 text-blue-700 border border-blue-100 rounded-full px-2.5 py-1 font-medium">멘토링 {mIds.size}명</span>
                 <span className="bg-purple-50 text-purple-700 border border-purple-100 rounded-full px-2.5 py-1 font-medium">선배탐구 {srIds.size}명</span>
-                <span className="bg-green-50 text-green-700 border border-green-100 rounded-full px-2.5 py-1 font-medium">발표자료 {mnIds.size}명</span>
+                <span className="bg-green-50 text-green-700 border border-green-100 rounded-full px-2.5 py-1 font-medium">멘토링 리뷰 {mnIds.size}명</span>
                 <span className="text-gray-400">/{n}명</span>
               </div>
             </div>
@@ -581,7 +584,7 @@ function WeeklySection({ data }: { data: AllSubmissions }) {
                   <span>이름</span>
                   <span className="w-20 text-center">멘토링</span>
                   <span className="w-20 text-center">선배탐구</span>
-                  <span className="w-20 text-center">발표자료</span>
+                  <span className="w-20 text-center">멘토링 리뷰</span>
                 </div>
                 {activeInterns.map((intern) => {
                   const mCount = mSubs.filter((s) => s.employeeId === intern.employeeId).length;
@@ -679,7 +682,7 @@ function MentoringAdminTab({ submissions, photos, onRefresh }: { submissions: Me
           {openId === employeeId && (
             <div className="border-t border-gray-100 divide-y divide-gray-50">
               {items.map((s) => {
-                const datePhotos = internPhotos.filter((p) => p.date === s.date);
+                const logPhotos = internPhotos.filter((p) => p.submissionId ? p.submissionId === s.id : p.date === s.date);
                 return (
                 <div key={s.id} className="px-5 py-4">
                   <div className="flex justify-between items-center mb-2">
@@ -710,11 +713,11 @@ function MentoringAdminTab({ submissions, photos, onRefresh }: { submissions: Me
                       <p className="text-sm text-gray-600 mt-0.5 whitespace-pre-wrap">{s.nextPlan}</p>
                     </div>
                   )}
-                  {datePhotos.length > 0 && (
+                  {logPhotos.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-gray-100">
-                      <span className="text-xs font-medium text-gray-400 block mb-2">📸 활동 사진 ({datePhotos.length}장)</span>
+                      <span className="text-xs font-medium text-gray-400 block mb-2">📸 활동 사진 ({logPhotos.length}장)</span>
                       <div className="grid grid-cols-3 gap-2">
-                        {datePhotos.map((p) => (
+                        {logPhotos.map((p) => (
                           <a key={p.id} href={`/api/photos/${p.id}`} target="_blank" rel="noopener noreferrer">
                             <img src={`/api/photos/${p.id}`} alt={p.caption} className="w-full h-24 object-cover rounded-lg hover:opacity-90 transition-opacity" />
                             {p.caption && <p className="text-[10px] text-gray-400 mt-0.5 truncate">{p.caption}</p>}
@@ -794,7 +797,7 @@ function SeniorAdminTab({ submissions, photos, onRefresh }: { submissions: Senio
           {openId === employeeId && (
             <div className="border-t border-gray-100 divide-y divide-gray-50">
               {items.map((s) => {
-                const datePhotos = internPhotos.filter((p) => p.date === s.date);
+                const logPhotos = internPhotos.filter((p) => p.submissionId ? p.submissionId === s.id : p.date === s.date);
                 return (
                 <div key={s.id} className="px-5 py-4">
                   <div className="flex justify-between items-center mb-2">
@@ -820,11 +823,11 @@ function SeniorAdminTab({ submissions, photos, onRefresh }: { submissions: Senio
                       <p className="text-sm text-gray-600 mt-0.5 whitespace-pre-wrap">{s.insights}</p>
                     </div>
                   )}
-                  {datePhotos.length > 0 && (
+                  {logPhotos.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-gray-100">
-                      <span className="text-xs font-medium text-gray-400 block mb-2">📷 활동 사진 ({datePhotos.length}장)</span>
+                      <span className="text-xs font-medium text-gray-400 block mb-2">📷 활동 사진 ({logPhotos.length}장)</span>
                       <div className="grid grid-cols-3 gap-2">
-                        {datePhotos.map((p) => (
+                        {logPhotos.map((p) => (
                           <a key={p.id} href={`/api/photos/${p.id}`} target="_blank" rel="noopener noreferrer">
                             <img src={`/api/photos/${p.id}`} alt={p.caption} className="w-full h-24 object-cover rounded-lg hover:opacity-90 transition-opacity" />
                             {p.caption && <p className="text-[10px] text-gray-400 mt-0.5 truncate">{p.caption}</p>}
@@ -845,6 +848,46 @@ function SeniorAdminTab({ submissions, photos, onRefresh }: { submissions: Senio
   );
 }
 
+function PlanAdminTab({ plans }: { plans: PlanSubmission[] }) {
+  if (plans.length === 0) {
+    return <EmptyState message="제출된 계획서가 없습니다." />;
+  }
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-gray-500">{plans.length}명 제출</p>
+      {plans.map((p) => (
+        <div key={p.id} className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <span className="font-semibold text-gray-800">{p.internName}</span>
+              <span className="text-xs text-gray-400 ml-2">사번: {p.employeeId}</span>
+              <span className="text-xs text-gray-400 ml-2">{p.department}</span>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-gray-400">멘토: {p.mentorName}</p>
+              <p className="text-xs text-gray-400">{new Date(p.submittedAt).toLocaleDateString("ko-KR")}</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs font-medium text-gray-400 mb-1">멘토링 계획</p>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">{p.mentoringPlan}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-gray-400 mb-1">선배 탐구생활 계획</p>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">{p.seniorPlan}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-gray-400 mb-1">인턴 기간 목표</p>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">{p.goal}</p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ManualAdminTab({ submissions }: { submissions: ManualSubmission[] }) {
   if (submissions.length === 0) {
     return <EmptyState message="제출된 팀 사용 설명서가 없습니다." />;
@@ -855,7 +898,7 @@ function ManualAdminTab({ submissions }: { submissions: ManualSubmission[] }) {
         <p className="text-sm text-gray-500">총 {submissions.length}건</p>
         <button
           type="button"
-          onClick={() => downloadPdf("/api/admin/download-manuals", "발표자료_전체.zip")}
+          onClick={() => downloadPdf("/api/admin/download-manuals", "멘토링 리뷰_전체.zip")}
           className="text-sm text-green-600 hover:text-green-700 border border-green-200 rounded-lg px-3 py-1.5 flex items-center gap-1"
         >
           📥 전체 다운로드 ({submissions.length}건)

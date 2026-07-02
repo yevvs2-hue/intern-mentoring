@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MentoringSubmission, SeniorSubmission, ManualSubmission } from "@/types";
+import { MentoringSubmission, SeniorSubmission, ManualSubmission, PlanSubmission } from "@/types";
 
 const NOTICES: { title: string; content: string; important?: boolean }[] = [
   // 나중에 유의사항을 여기에 추가하세요
@@ -10,10 +10,9 @@ const NOTICES: { title: string; content: string; important?: boolean }[] = [
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 const DEADLINES: Record<string, { text: string; color: string }[]> = {
-  "2026-07-13": [{ text: "멘토링 1차", color: "blue" }, { text: "탐구 1차", color: "purple" }],
-  "2026-07-20": [{ text: "멘토링 2차", color: "blue" }, { text: "탐구 2차", color: "purple" }],
-  "2026-07-27": [{ text: "멘토링 3차", color: "blue" }, { text: "탐구 3차", color: "purple" }],
-  "2026-07-29": [{ text: "발표 자료", color: "green" }],
+  "2026-07-16": [{ text: "멘토링 1차", color: "blue" }, { text: "탐구 1차", color: "purple" }],
+  "2026-07-23": [{ text: "멘토링 2차", color: "blue" }, { text: "탐구 2차", color: "purple" }],
+  "2026-07-29": [{ text: "멘토링 3차", color: "blue" }, { text: "탐구 3차", color: "purple" }, { text: "멘토링 리뷰", color: "green" }],
 };
 
 interface HomeTabProps {
@@ -21,9 +20,10 @@ interface HomeTabProps {
   mentoringList: MentoringSubmission[];
   seniorList: SeniorSubmission[];
   manualList: ManualSubmission[];
+  plan: PlanSubmission | null;
 }
 
-export default function HomeTab({ internName, mentoringList, seniorList, manualList }: HomeTabProps) {
+export default function HomeTab({ internName, mentoringList, seniorList, manualList, plan }: HomeTabProps) {
   const today = new Date();
   const [viewYear, setViewYear] = useState(2026);
   const [viewMonth, setViewMonth] = useState(6); // 7월
@@ -53,7 +53,7 @@ export default function HomeTab({ internName, mentoringList, seniorList, manualL
   const totalSubmissions = mentoringList.length + seniorList.length + manualList.length;
 
   return (
-    <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-5">
+    <div className="p-4 sm:p-6 max-w-3xl lg:max-w-4xl mx-auto space-y-5">
       {/* 환영 배너 */}
       <div className="bg-white rounded-2xl border border-gray-200 p-5">
         <div className="flex items-center justify-between mb-3">
@@ -65,10 +65,11 @@ export default function HomeTab({ internName, mentoringList, seniorList, manualL
       </div>
 
       {/* 제출 현황 */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <SummaryCard label="계획서" count={plan ? 1 : 0} total={1} color="gray" icon="📋" />
         <SummaryCard label="멘토링 활동일지" count={mentoringList.length} total={3} color="blue" icon="📝" />
         <SummaryCard label="선배탐구생활" count={seniorList.length} total={3} color="purple" icon="🔍" />
-        <SummaryCard label="발표 자료" count={manualList.length} total={1} color="green" icon="📖" />
+        <SummaryCard label="멘토링 리뷰" count={manualList.length} total={1} color="green" icon="📖" />
       </div>
 
       {/* 공지 */}
@@ -177,7 +178,7 @@ export default function HomeTab({ internName, mentoringList, seniorList, manualL
             {[
               ...mentoringList.map((s) => ({ type: "멘토링", date: s.date, color: "blue" })),
               ...seniorList.map((s) => ({ type: "선배탐구", date: s.date, color: "purple" })),
-              ...manualList.map((s) => ({ type: "발표 자료", date: s.submittedAt.slice(0, 10), color: "green" })),
+              ...manualList.map((s) => ({ type: "멘토링 리뷰", date: s.submittedAt.slice(0, 10), color: "green" })),
             ]
               .sort((a, b) => b.date.localeCompare(a.date))
               .slice(0, 5)
@@ -204,12 +205,13 @@ function SummaryCard({ label, count, total, color, icon }: { label: string; coun
     blue: "bg-blue-50 border-blue-100 text-blue-700",
     purple: "bg-purple-50 border-purple-100 text-purple-700",
     green: "bg-green-50 border-green-100 text-green-700",
+    gray: "bg-gray-50 border-gray-200 text-gray-700",
   };
   return (
     <div className={`rounded-2xl border p-3 ${colorMap[color]}`}>
       <div className="text-xl mb-1">{icon}</div>
-      <div className="text-xl font-bold leading-tight">{count}<span className="text-xs font-normal opacity-50">/{total}</span></div>
-      <div className="text-xs mt-0.5 opacity-80 leading-tight">{label}</div>
+      <div className="text-3xl font-bold leading-tight">{count}<span className="text-sm font-normal opacity-50">/{total}</span></div>
+      <div className="text-sm font-medium mt-1 leading-tight">{label}</div>
     </div>
   );
 }

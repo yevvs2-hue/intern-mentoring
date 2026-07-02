@@ -10,6 +10,7 @@ export async function GET() {
     senior: store.senior,
     manual: store.manual,
     photos: store.photos ?? [],
+    plan: store.plan ?? [],
   });
 }
 

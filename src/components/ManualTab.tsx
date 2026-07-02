@@ -72,15 +72,15 @@ export default function ManualTab({ onSubmit, submissions }: ManualTabProps) {
   };
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
+    <div className="p-6 max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-800">발표 자료 제출</h2>
+        <h2 className="text-xl font-bold text-gray-800">멘토링 리뷰 제출</h2>
         <p className="text-sm text-gray-500 mt-1">PPT, PDF, 동영상 파일을 업로드해 주세요.</p>
       </div>
 
       {submitted && (
         <div className="mb-4 bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-3 text-sm">
-          ✅ 발표 자료가 성공적으로 제출되었습니다!
+          ✅ 멘토링 리뷰가 성공적으로 제출되었습니다!
         </div>
       )}
       {error && (
@@ -107,7 +107,7 @@ export default function ManualTab({ onSubmit, submissions }: ManualTabProps) {
             value={description}
             onChange={e => setDescription(e.target.value)}
             rows={2}
-            placeholder="발표 자료에 대한 간단한 설명을 입력해 주세요."
+            placeholder="멘토링 리뷰에 대한 간단한 설명을 입력해 주세요."
             className={textareaCls}
           />
         </div>
@@ -161,7 +161,7 @@ export default function ManualTab({ onSubmit, submissions }: ManualTabProps) {
           disabled={submitting}
           className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-semibold py-3 rounded-xl transition-colors"
         >
-          {submitting ? "업로드 중..." : "발표 자료 제출하기"}
+          {submitting ? "업로드 중..." : "멘토링 리뷰 제출하기"}
         </button>
       </form>
 

@@ -86,6 +86,7 @@ export async function POST(req: NextRequest) {
       photos.push({
         id: crypto.randomUUID(),
         type: "mentoring",
+        submissionId: mentoring.id,
         employeeId, internName, department, date,
         caption: "",
         fileName: file.name,

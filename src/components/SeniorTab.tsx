@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { SeniorSubmission, PhotoSubmission } from "@/types";
 import { downloadPdf } from "@/lib/download-pdf";
+import { useDraft } from "@/hooks/useDraft";
 
 interface SeniorTabProps {
   onSubmit: (data: Omit<SeniorSubmission, "id" | "submittedAt" | "employeeId">, photos: File[]) => Promise<void>;
@@ -14,7 +15,7 @@ interface SeniorTabProps {
 }
 
 export default function SeniorTab({ onSubmit, onPhotoSubmit, submissions, photos, onDelete, onRefresh }: SeniorTabProps) {
-  const [form, setForm] = useState({
+  const { value: form, save: saveForm, clear: clearDraft, savedAt: draftSavedAt } = useDraft("draft_senior", {
     date: new Date().toISOString().slice(0, 10),
     internName: "",
     seniorName: "",
@@ -31,7 +32,7 @@ export default function SeniorTab({ onSubmit, onPhotoSubmit, submissions, photos
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    saveForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const addPhotos = (fl: FileList | null) => {
@@ -51,7 +52,7 @@ export default function SeniorTab({ onSubmit, onPhotoSubmit, submissions, photos
       await onSubmit({ ...form }, selectedPhotos);
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 3000);
-      setForm((prev) => ({ ...prev, topic: "", content: "", insights: "" }));
+      clearDraft();
       setSelectedPhotos([]);
       setPhotoError(false);
     } finally {
@@ -60,7 +61,7 @@ export default function SeniorTab({ onSubmit, onPhotoSubmit, submissions, photos
   };
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
+    <div className="p-6 max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto">
       <div className="mb-6">
         <h2 className="text-xl font-bold text-gray-800">선배 탐구생활 제출</h2>
         <p className="text-sm text-gray-500 mt-1">선배와의 만남을 통해 탐구한 내용을 기록해 주세요.</p>
@@ -174,9 +175,16 @@ export default function SeniorTab({ onSubmit, onPhotoSubmit, submissions, photos
           )}
         </div>
 
-        <button type="submit" disabled={submitting} className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-semibold py-3 rounded-xl transition-colors">
-          {submitting ? "제출 중..." : "탐구생활 제출하기"}
-        </button>
+        <div className="space-y-2">
+          {draftSavedAt && (
+            <p className="text-xs text-gray-400 text-center">
+              임시저장됨 · {draftSavedAt.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
+            </p>
+          )}
+          <button type="submit" disabled={submitting} className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-semibold py-3 rounded-xl transition-colors">
+            {submitting ? "제출 중..." : "탐구생활 제출하기"}
+          </button>
+        </div>
       </form>
 
       {submissions.length > 0 && (
@@ -184,7 +192,7 @@ export default function SeniorTab({ onSubmit, onPhotoSubmit, submissions, photos
           <h3 className="text-base font-semibold text-gray-700 mb-3">제출 내역 ({submissions.length}건)</h3>
           <div className="space-y-3">
             {submissions.slice().reverse().map((s) => (
-              <SubmissionCard key={s.id} submission={s} onDelete={onDelete} onRefresh={onRefresh} />
+              <SubmissionCard key={s.id} submission={s} photos={photos} onDelete={onDelete} onRefresh={onRefresh} />
             ))}
           </div>
         </div>
@@ -196,13 +204,19 @@ export default function SeniorTab({ onSubmit, onPhotoSubmit, submissions, photos
 
 function SubmissionCard({
   submission: s,
+  photos,
   onDelete,
   onRefresh,
 }: {
   submission: SeniorSubmission;
+  photos: PhotoSubmission[];
   onDelete: (id: string) => Promise<void>;
   onRefresh: () => Promise<void>;
 }) {
+  const logPhotos = photos.filter((p) =>
+    p.type === "senior" &&
+    (p.submissionId ? p.submissionId === s.id : p.employeeId === s.employeeId && p.date === s.date)
+  );
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -291,6 +305,19 @@ function SubmissionCard({
           <DetailRow label="소속 부서" value={s.department} />
           <DetailRow label="탐구 내용" value={s.content} />
           <DetailRow label="인사이트 / 느낀 점" value={s.insights} />
+          {logPhotos.length > 0 && (
+            <div className="pt-2">
+              <span className="text-xs font-medium text-gray-400 block mb-2">📷 활동 사진 ({logPhotos.length}장)</span>
+              <div className="grid grid-cols-3 gap-2">
+                {logPhotos.map((p) => (
+                  <a key={p.id} href={`/api/photos/${p.id}`} target="_blank" rel="noopener noreferrer">
+                    <img src={`/api/photos/${p.id}`} alt={p.caption} className="w-full h-24 object-cover rounded-lg hover:opacity-90 transition-opacity" />
+                    {p.caption && <p className="text-[10px] text-gray-400 mt-0.5 truncate">{p.caption}</p>}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
       {open && editing && (
