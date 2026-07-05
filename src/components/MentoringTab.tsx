@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { MentoringSubmission, PhotoSubmission } from "@/types";
 import { downloadPdf } from "@/lib/download-pdf";
 import { useDraft } from "@/hooks/useDraft";
+import { todayLocalDate } from "@/lib/date";
 
 interface MentoringTabProps {
   onSubmit: (data: Omit<MentoringSubmission, "id" | "submittedAt" | "employeeId">, photos: File[]) => Promise<void>;
@@ -16,7 +17,7 @@ interface MentoringTabProps {
 
 export default function MentoringTab({ onSubmit, onPhotoSubmit, submissions, photos, onDelete, onRefresh }: MentoringTabProps) {
   const { value: form, save: saveForm, clear: clearDraft, savedAt: draftSavedAt } = useDraft("draft_mentoring", {
-    date: new Date().toISOString().slice(0, 10),
+    date: todayLocalDate(),
     internName: "",
     mentorName: "",
     department: "",
@@ -447,7 +448,7 @@ function PhotoUploadSection({ type, onPhotoSubmit, photos }: {
         fd.append("type", type);
         fd.append("internName", "");
         fd.append("department", "");
-        fd.append("date", new Date().toISOString().slice(0, 10));
+        fd.append("date", todayLocalDate());
         fd.append("caption", caption);
         fd.append("file", file);
         await onPhotoSubmit(fd);

@@ -2,18 +2,13 @@
 
 import { useState } from "react";
 import { MentoringSubmission, SeniorSubmission, ManualSubmission, PlanSubmission } from "@/types";
+import { DEADLINES } from "@/lib/deadlines";
 
 const NOTICES: { title: string; content: string; important?: boolean }[] = [
   // 나중에 유의사항을 여기에 추가하세요
 ];
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
-
-const DEADLINES: Record<string, { text: string; color: string }[]> = {
-  "2026-07-16": [{ text: "멘토링 1차", color: "blue" }, { text: "탐구 1차", color: "purple" }],
-  "2026-07-23": [{ text: "멘토링 2차", color: "blue" }, { text: "탐구 2차", color: "purple" }],
-  "2026-07-29": [{ text: "멘토링 3차", color: "blue" }, { text: "탐구 3차", color: "purple" }, { text: "멘토링 리뷰", color: "green" }],
-};
 
 interface HomeTabProps {
   internName: string;
@@ -32,6 +27,16 @@ export default function HomeTab({ internName, mentoringList, seniorList, manualL
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const mentoringDates = new Set(mentoringList.map((s) => s.date));
   const seniorDates = new Set(seniorList.map((s) => s.date));
+  const manualDates = new Set(manualList.map((s) => s.submittedAt.slice(0, 10)));
+  const planDates = new Set(plan ? [plan.submittedAt.slice(0, 10)] : []);
+
+  const isDeadlineSubmitted = (color: string, dateStr: string) => {
+    if (color === "blue") return mentoringDates.has(dateStr);
+    if (color === "purple") return seniorDates.has(dateStr);
+    if (color === "green") return manualDates.has(dateStr);
+    if (color === "gray") return planDates.has(dateStr);
+    return false;
+  };
 
   const prevMonth = () => {
     if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); }
@@ -110,21 +115,49 @@ export default function HomeTab({ internName, mentoringList, seniorList, manualL
           </div>
           <div className="grid grid-cols-7">
             {cells.map((day, idx) => {
-              if (!day) return <div key={idx} className="h-12 border-r border-b border-gray-50 last:border-r-0" />;
+              if (!day) return <div key={idx} className="h-24 border-r border-b border-gray-50 last:border-r-0" />;
               const dateStr = formatDate(day);
               const hasMentoring = mentoringDates.has(dateStr);
               const hasSenior = seniorDates.has(dateStr);
               const deadlines = DEADLINES[dateStr] ?? [];
               const isToday = day === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
               return (
-                <div key={idx} className={`h-12 p-1.5 border-r border-b border-gray-50 last:border-r-0 flex flex-col items-center gap-1 ${isToday ? "bg-blue-50" : ""}`}>
+                <div key={idx} className={`h-24 p-1.5 border-r border-b border-gray-50 last:border-r-0 flex flex-col items-start gap-1 overflow-hidden ${isToday ? "bg-blue-50" : ""}`}>
                   <span className={`text-xs font-medium leading-none ${isToday ? "w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center" : "text-gray-700"}`}>
                     {day}
                   </span>
-                  <div className="flex gap-0.5 flex-wrap justify-center">
-                    {hasMentoring && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />}
-                    {hasSenior && <span className="w-1.5 h-1.5 rounded-full bg-purple-500 inline-block" />}
-                    {deadlines.length > 0 && <span className="w-1.5 h-1.5 rounded-full border border-red-400 inline-block" />}
+                  <div className="flex flex-col gap-0.5 w-full">
+                    {deadlines.map((item, i) => {
+                      const submitted = isDeadlineSubmitted(item.color, dateStr);
+                      const filledCls: Record<string, string> = {
+                        blue: "bg-blue-500 text-white",
+                        purple: "bg-purple-500 text-white",
+                        green: "bg-green-500 text-white",
+                        gray: "bg-gray-500 text-white",
+                      };
+                      const lightCls: Record<string, string> = {
+                        blue: "bg-blue-50 text-blue-400",
+                        purple: "bg-purple-50 text-purple-400",
+                        green: "bg-green-50 text-green-400",
+                        gray: "bg-gray-100 text-gray-400",
+                      };
+                      return (
+                        <span
+                          key={i}
+                          className={`text-[10px] leading-tight rounded px-1 py-0.5 truncate w-full ${
+                            submitted ? filledCls[item.color] : lightCls[item.color]
+                          }`}
+                        >
+                          {item.text}
+                        </span>
+                      );
+                    })}
+                    {deadlines.length === 0 && hasMentoring && (
+                      <span className="text-[10px] leading-tight rounded px-1 py-0.5 truncate w-full bg-blue-500 text-white">멘토링</span>
+                    )}
+                    {deadlines.length === 0 && hasSenior && (
+                      <span className="text-[10px] leading-tight rounded px-1 py-0.5 truncate w-full bg-purple-500 text-white">탐구</span>
+                    )}
                   </div>
                 </div>
               );
@@ -132,9 +165,9 @@ export default function HomeTab({ internName, mentoringList, seniorList, manualL
           </div>
         </div>
         <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-400">
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500 inline-block" /> 멘토링 제출</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-500 inline-block" /> 탐구 제출</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full border border-red-400 inline-block" /> 마감일</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500 inline-block" /> 제출 완료</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-50 border border-blue-200 inline-block" /> 미제출</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> 마감일</span>
         </div>
       </div>
 
@@ -151,6 +184,7 @@ export default function HomeTab({ internName, mentoringList, seniorList, manualL
               blue: "bg-blue-100 text-blue-700",
               purple: "bg-purple-100 text-purple-700",
               green: "bg-green-100 text-green-700",
+              gray: "bg-gray-200 text-gray-700",
             };
             return (
               <div key={date} className="flex items-center justify-between px-4 py-3">

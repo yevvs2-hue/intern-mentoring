@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import * as XLSX from "xlsx";
 import { downloadPdf } from "@/lib/download-pdf";
+import CalendarTab from "@/components/CalendarTab";
 import { MentoringSubmission, SeniorSubmission, ManualSubmission, PhotoSubmission, PlanSubmission, Intern } from "@/types";
 
 interface AllSubmissions {
@@ -14,7 +15,7 @@ interface AllSubmissions {
   plan: PlanSubmission[];
 }
 
-type AdminTab = "overview" | "interns" | "plan" | "mentoring" | "senior" | "manual";
+type AdminTab = "overview" | "interns" | "calendar" | "plan" | "mentoring" | "senior" | "manual";
 
 export default function AdminPage() {
   const [isAuthed, setIsAuthed] = useState(false);
@@ -134,6 +135,7 @@ export default function AdminPage() {
   const adminTabs: { id: AdminTab; label: string; icon: string }[] = [
     { id: "overview", label: "현황", icon: "📊" },
     { id: "interns", label: "인턴 관리", icon: "👤" },
+    { id: "calendar", label: "캘린더", icon: "🗓️" },
     { id: "plan", label: "계획서", icon: "📋" },
     { id: "mentoring", label: "멘토링", icon: "📝" },
     { id: "senior", label: "선배탐구", icon: "🔍" },
@@ -194,6 +196,14 @@ export default function AdminPage() {
           <>
             {activeTab === "overview" && <OverviewTab data={data} />}
             {activeTab === "interns" && <InternManagementTab interns={data.interns} onRefresh={fetchData} />}
+            {activeTab === "calendar" && (
+              <CalendarTab
+                mentoringList={data.mentoring}
+                seniorList={data.senior}
+                manualList={data.manual}
+                planList={data.plan ?? []}
+              />
+            )}
             {activeTab === "plan" && <PlanAdminTab plans={data.plan ?? []} />}
             {activeTab === "mentoring" && <MentoringAdminTab submissions={data.mentoring} photos={data.photos} onRefresh={fetchData} />}
             {activeTab === "senior" && <SeniorAdminTab submissions={data.senior} photos={data.photos} onRefresh={fetchData} />}
