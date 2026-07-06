@@ -1,5 +1,7 @@
 import { put, get, del } from "@vercel/blob";
 import { SubmissionsStore } from "@/types";
+import fs from "fs";
+import path from "path";
 
 const STORE_PATH = "data/submissions.json";
 const LOCK_PATH = "data/submissions.lock";
@@ -8,7 +10,25 @@ const LOCK_ACQUIRE_TIMEOUT_MS = 10_000;
 
 const INITIAL: SubmissionsStore = { interns: [], mentoring: [], senior: [], manual: [], photos: [], plan: [] };
 
+const LOCAL_STORE_PATH = path.join(process.cwd(), "data", "submissions.local.json");
+const isLocal = !process.env.BLOB_READ_WRITE_TOKEN;
+
+function readLocalStore(): SubmissionsStore {
+  try {
+    if (fs.existsSync(LOCAL_STORE_PATH)) {
+      return JSON.parse(fs.readFileSync(LOCAL_STORE_PATH, "utf-8"));
+    }
+  } catch {}
+  return { ...INITIAL };
+}
+
+function writeLocalStore(data: SubmissionsStore): void {
+  fs.mkdirSync(path.dirname(LOCAL_STORE_PATH), { recursive: true });
+  fs.writeFileSync(LOCAL_STORE_PATH, JSON.stringify(data, null, 2), "utf-8");
+}
+
 export async function readStore(): Promise<SubmissionsStore> {
+  if (isLocal) return readLocalStore();
   try {
     const result = await get(STORE_PATH, { access: "private" });
     if (!result) return { ...INITIAL };
@@ -19,6 +39,7 @@ export async function readStore(): Promise<SubmissionsStore> {
 }
 
 export async function writeStore(data: SubmissionsStore): Promise<void> {
+  if (isLocal) { writeLocalStore(data); return; }
   await put(STORE_PATH, JSON.stringify(data, null, 2), {
     access: "private",
     allowOverwrite: true,
@@ -28,6 +49,7 @@ export async function writeStore(data: SubmissionsStore): Promise<void> {
 }
 
 async function acquireLock(): Promise<void> {
+  if (isLocal) return;
   const deadline = Date.now() + LOCK_ACQUIRE_TIMEOUT_MS;
   while (Date.now() < deadline) {
     try {
@@ -56,6 +78,7 @@ async function acquireLock(): Promise<void> {
 }
 
 async function releaseLock(): Promise<void> {
+  if (isLocal) return;
   await del(LOCK_PATH).catch(() => {});
 }
 

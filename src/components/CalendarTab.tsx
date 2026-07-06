@@ -9,11 +9,12 @@ interface CalendarTabProps {
   seniorList: SeniorSubmission[];
   manualList: ManualSubmission[];
   planList: PlanSubmission[];
+  hideSummary?: boolean;
 }
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
-export default function CalendarTab({ mentoringList, seniorList, manualList, planList }: CalendarTabProps) {
+export default function CalendarTab({ mentoringList, seniorList, manualList, planList, hideSummary }: CalendarTabProps) {
   const today = new Date();
   const [viewYear, setViewYear] = useState(2026);
   const [viewMonth, setViewMonth] = useState(6); // 7월
@@ -54,14 +55,16 @@ export default function CalendarTab({ mentoringList, seniorList, manualList, pla
   const totalSubmissions = mentoringList.length + seniorList.length + manualList.length + planList.length;
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className={hideSummary ? "" : "p-6 max-w-4xl mx-auto"}>
       {/* 현황 요약 */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
-        <SummaryCard label="계획서" count={planList.length} color="gray" icon="📋" />
-        <SummaryCard label="멘토링 활동일지" count={mentoringList.length} color="blue" icon="📝" />
-        <SummaryCard label="선배 탐구생활" count={seniorList.length} color="purple" icon="🔍" />
-        <SummaryCard label="우리팀 사용 설명서" count={manualList.length} color="green" icon="📖" />
-      </div>
+      {!hideSummary && (
+        <div className="grid grid-cols-4 gap-4 mb-8">
+          <SummaryCard label="계획서" count={planList.length} color="gray" icon="📋" />
+          <SummaryCard label="멘토링 활동일지" count={mentoringList.length} color="blue" icon="📝" />
+          <SummaryCard label="선배 탐구생활" count={seniorList.length} color="purple" icon="🔍" />
+          <SummaryCard label="우리팀 사용 설명서" count={manualList.length} color="green" icon="📖" />
+        </div>
+      )}
 
       {/* 캘린더 */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
@@ -87,7 +90,7 @@ export default function CalendarTab({ mentoringList, seniorList, manualList, pla
 
         <div className="grid grid-cols-7">
           {cells.map((day, idx) => {
-            if (!day) return <div key={idx} className="h-24 border-r border-b border-gray-50" />;
+            if (!day) return <div key={idx} className="h-28 border-r border-b border-gray-50" />;
             const dateStr = formatDate(day);
             const hasMentoring = mentoringDates.has(dateStr);
             const hasSenior = seniorDates.has(dateStr);
@@ -100,7 +103,7 @@ export default function CalendarTab({ mentoringList, seniorList, manualList, pla
             return (
               <div
                 key={idx}
-                className={`h-24 p-1.5 border-r border-b border-gray-50 flex flex-col items-start gap-1 overflow-hidden ${isToday ? "bg-blue-50" : ""}`}
+                className={`h-28 p-1.5 border-r border-b border-gray-50 flex flex-col items-start gap-1 overflow-hidden ${isToday ? "bg-blue-50" : ""}`}
               >
                 <span
                   className={`text-xs font-medium leading-none ${
@@ -118,33 +121,36 @@ export default function CalendarTab({ mentoringList, seniorList, manualList, pla
                       blue: "bg-blue-500 text-white",
                       purple: "bg-purple-500 text-white",
                       green: "bg-green-500 text-white",
-                      gray: "bg-gray-500 text-white",
+                      gray: "bg-gray-600 text-white",
                     };
-                    const lightCls: Record<string, string> = {
-                      blue: "bg-blue-50 text-blue-400",
-                      purple: "bg-purple-50 text-purple-400",
-                      green: "bg-green-50 text-green-400",
-                      gray: "bg-gray-100 text-gray-400",
+                    const outlineCls: Record<string, string> = {
+                      blue: "border border-blue-300 text-blue-600 bg-blue-50",
+                      purple: "border border-purple-300 text-purple-600 bg-purple-50",
+                      green: "border border-green-300 text-green-600 bg-green-50",
+                      gray: "border border-gray-300 text-gray-500 bg-gray-50",
                     };
                     return (
                       <span
                         key={i}
-                        className={`text-[10px] leading-tight rounded px-1 py-0.5 truncate w-full ${
-                          submitted ? filledCls[item.color] : lightCls[item.color]
+                        className={`text-[10px] leading-tight rounded px-1 py-0.5 truncate w-full flex items-center gap-0.5 ${
+                          submitted ? filledCls[item.color] : outlineCls[item.color]
                         }`}
                       >
-                        {item.text}
+                        <span className="shrink-0">{submitted ? "✓" : "○"}</span>
+                        <span className="truncate">{item.text}</span>
                       </span>
                     );
                   })}
-                  {deadlines.length === 0 && hasMentoring && (
-                    <span className="text-[10px] leading-tight rounded px-1 py-0.5 truncate w-full bg-blue-500 text-white">
-                      멘토링
+                  {hasMentoring && (
+                    <span className="text-[10px] leading-tight rounded px-1 py-0.5 truncate w-full flex items-center gap-0.5 bg-blue-500 text-white">
+                      <span className="shrink-0">✓</span>
+                      <span className="truncate">멘토링 제출</span>
                     </span>
                   )}
-                  {deadlines.length === 0 && hasSenior && (
-                    <span className="text-[10px] leading-tight rounded px-1 py-0.5 truncate w-full bg-purple-500 text-white">
-                      탐구생활
+                  {hasSenior && (
+                    <span className="text-[10px] leading-tight rounded px-1 py-0.5 truncate w-full flex items-center gap-0.5 bg-purple-500 text-white">
+                      <span className="shrink-0">✓</span>
+                      <span className="truncate">탐구 제출</span>
                     </span>
                   )}
                 </div>

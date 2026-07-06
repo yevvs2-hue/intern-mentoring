@@ -6,10 +6,11 @@ import { useDraft } from "@/hooks/useDraft";
 
 interface PlanTabProps {
   plan: PlanSubmission | null;
+  internName: string;
   onSubmit: (data: Omit<PlanSubmission, "id" | "submittedAt" | "employeeId" | "internName">) => Promise<void>;
 }
 
-export default function PlanTab({ plan, onSubmit }: PlanTabProps) {
+export default function PlanTab({ plan, internName, onSubmit }: PlanTabProps) {
   const [editing, setEditing] = useState(!plan);
   const { value: form, save: saveForm, clear: clearDraft, savedAt: draftSavedAt } = useDraft("draft_plan", {
     department: plan?.department ?? "",
@@ -50,7 +51,11 @@ export default function PlanTab({ plan, onSubmit }: PlanTabProps) {
             </button>
           </div>
           <div className="space-y-5">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <p className="text-xs font-medium text-gray-400 mb-1">이름</p>
+                <p className="text-sm text-gray-800">{plan.internName}</p>
+              </div>
               <div>
                 <p className="text-xs font-medium text-gray-400 mb-1">부서</p>
                 <p className="text-sm text-gray-800">{plan.department}</p>
@@ -84,7 +89,12 @@ export default function PlanTab({ plan, onSubmit }: PlanTabProps) {
   return (
     <div className="max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto px-4 py-8">
       <div className="bg-white rounded-2xl border border-gray-200 p-6">
-        <h2 className="text-lg font-bold text-gray-900 mb-6">멘토링 계획서</h2>
+        <h2 className="text-lg font-bold text-gray-900 mb-1">멘토링 계획서</h2>
+        <ul className="text-sm text-gray-400 mb-6 space-y-1 list-disc list-inside">
+          <li>이 계획은 완벽한 일정표가 아니라 방향을 잡기 위한 출발점입니다.</li>
+          <li>계획을 세우기 전 멘토와 충분히 상의해서 목표를 함께 정하세요.</li>
+          <li>실제로 해보면서 계획은 얼마든지 바뀔 수 있습니다.</li>
+        </ul>
 
         {error && (
           <div className="mb-4 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
@@ -93,7 +103,16 @@ export default function PlanTab({ plan, onSubmit }: PlanTabProps) {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">이름</label>
+              <input
+                type="text"
+                value={internName}
+                readOnly
+                className="w-full border border-gray-100 rounded-xl px-4 py-2.5 text-sm bg-gray-50 text-gray-500 cursor-default"
+              />
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 부서 <span className="text-red-500">*</span>
@@ -130,8 +149,8 @@ export default function PlanTab({ plan, onSubmit }: PlanTabProps) {
               value={form.mentoringPlan}
               onChange={(e) => saveForm({ ...form, mentoringPlan: e.target.value })}
               required
-              rows={4}
-              placeholder="멘토링 활동 계획을 작성해 주세요."
+              rows={5}
+              placeholder="주차별로 진행할 업무 또는 배울 내용에 대해 써주세요."
               className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
           </div>
@@ -145,7 +164,7 @@ export default function PlanTab({ plan, onSubmit }: PlanTabProps) {
               onChange={(e) => saveForm({ ...form, seniorPlan: e.target.value })}
               required
               rows={4}
-              placeholder="선배 탐구생활 계획을 작성해 주세요."
+              placeholder="인터뷰 예정인 선배의 이름과 부서, 만날 날짜를 작성해 주세요."
               className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
           </div>

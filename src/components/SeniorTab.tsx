@@ -7,6 +7,7 @@ import { useDraft } from "@/hooks/useDraft";
 import { todayLocalDate } from "@/lib/date";
 
 interface SeniorTabProps {
+  internName: string;
   onSubmit: (data: Omit<SeniorSubmission, "id" | "submittedAt" | "employeeId">, photos: File[]) => Promise<void>;
   onPhotoSubmit: (formData: FormData) => Promise<void>;
   submissions: SeniorSubmission[];
@@ -15,10 +16,9 @@ interface SeniorTabProps {
   onRefresh: () => Promise<void>;
 }
 
-export default function SeniorTab({ onSubmit, onPhotoSubmit, submissions, photos, onDelete, onRefresh }: SeniorTabProps) {
+export default function SeniorTab({ internName, onSubmit, onPhotoSubmit, submissions, photos, onDelete, onRefresh }: SeniorTabProps) {
   const { value: form, save: saveForm, clear: clearDraft, savedAt: draftSavedAt } = useDraft("draft_senior", {
     date: todayLocalDate(),
-    internName: "",
     seniorName: "",
     department: "",
     topic: "",
@@ -50,7 +50,7 @@ export default function SeniorTab({ onSubmit, onPhotoSubmit, submissions, photos
     }
     setSubmitting(true);
     try {
-      await onSubmit({ ...form }, selectedPhotos);
+      await onSubmit({ ...form, internName }, selectedPhotos);
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 3000);
       clearDraft();
@@ -85,8 +85,8 @@ export default function SeniorTab({ onSubmit, onPhotoSubmit, submissions, photos
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label="인턴 이름" required>
-            <input name="internName" value={form.internName} onChange={handleChange} required placeholder="홍길동" className={inputCls} />
+          <Field label="인턴 이름">
+            <input value={internName} readOnly className="w-full border border-gray-100 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500 cursor-default" />
           </Field>
           <Field label="선배 이름" required>
             <input name="seniorName" value={form.seniorName} onChange={handleChange} required placeholder="이선배" className={inputCls} />

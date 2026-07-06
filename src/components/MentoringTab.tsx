@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { MentoringSubmission, PhotoSubmission } from "@/types";
 import { downloadPdf } from "@/lib/download-pdf";
 import { useDraft } from "@/hooks/useDraft";
 import { todayLocalDate } from "@/lib/date";
+import { MENTORING_ROUNDS, getRoundIndex } from "@/lib/rounds";
 
 interface MentoringTabProps {
+  internName: string;
   onSubmit: (data: Omit<MentoringSubmission, "id" | "submittedAt" | "employeeId">, photos: File[]) => Promise<void>;
   onPhotoSubmit: (formData: FormData) => Promise<void>;
   submissions: MentoringSubmission[];
@@ -15,13 +17,10 @@ interface MentoringTabProps {
   onRefresh: () => Promise<void>;
 }
 
-export default function MentoringTab({ onSubmit, onPhotoSubmit, submissions, photos, onDelete, onRefresh }: MentoringTabProps) {
+export default function MentoringTab({ internName, onSubmit, onPhotoSubmit, submissions, photos, onDelete, onRefresh }: MentoringTabProps) {
   const { value: form, save: saveForm, clear: clearDraft, savedAt: draftSavedAt } = useDraft("draft_mentoring", {
-    date: todayLocalDate(),
-    internName: "",
     mentorName: "",
     department: "",
-    duration: "",
     content: "",
     learned: "",
     nextPlan: "",
@@ -32,6 +31,14 @@ export default function MentoringTab({ onSubmit, onPhotoSubmit, submissions, pho
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const submittedRoundIndices = useMemo(
+    () => new Set(submissions.map((s) => getRoundIndex(s.date)).filter((i) => i !== -1)),
+    [submissions]
+  );
+  const today = todayLocalDate();
+  const todayRoundIdx = getRoundIndex(today);
+  const isDuplicateRound = todayRoundIdx !== -1 && submittedRoundIndices.has(todayRoundIdx);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     saveForm({ ...form, [e.target.name]: e.target.value });
@@ -49,9 +56,12 @@ export default function MentoringTab({ onSubmit, onPhotoSubmit, submissions, pho
       setPhotoError(true);
       return;
     }
+    if (isDuplicateRound) {
+      return;
+    }
     setSubmitting(true);
     try {
-      await onSubmit({ ...form }, selectedPhotos);
+      await onSubmit({ ...form, internName, date: today, duration: "" }, selectedPhotos);
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 3000);
       clearDraft();
@@ -66,7 +76,30 @@ export default function MentoringTab({ onSubmit, onPhotoSubmit, submissions, pho
     <div className="p-6 max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto">
       <div className="mb-6">
         <h2 className="text-xl font-bold text-gray-800">멘토링 활동일지 제출</h2>
-        <p className="text-sm text-gray-500 mt-1">멘토와의 활동 내용을 기록하고 제출해 주세요.</p>
+        <p className="text-sm text-gray-500 mt-1">멘토와의 활동 내용을 기록하고 제출해 주세요. 총 3회(1차~3차) 제출하며, 차수당 1건만 제출할 수 있습니다.</p>
+      </div>
+
+      <div className="flex items-center gap-2 mb-6">
+        {MENTORING_ROUNDS.map((r, i) => {
+          const done = submittedRoundIndices.has(i);
+          return (
+            <div key={r.label} className="flex items-center flex-1">
+              <div
+                className={`flex-1 rounded-xl border px-3 py-2 text-center ${
+                  done
+                    ? "bg-blue-600 border-blue-600 text-white"
+                    : "bg-white border-gray-200 text-gray-400"
+                }`}
+              >
+                <p className="text-sm font-semibold">{done ? "✓ " : ""}{r.label}</p>
+                <p className={`text-[10px] mt-0.5 ${done ? "text-blue-100" : "text-gray-400"}`}>
+                  {r.start.slice(5).replace("-", "/")} ~ {r.end.slice(5).replace("-", "/")}
+                </p>
+              </div>
+              {i < MENTORING_ROUNDS.length - 1 && <div className="w-2 shrink-0" />}
+            </div>
+          );
+        })}
       </div>
 
       {submitted && (
@@ -76,33 +109,22 @@ export default function MentoringTab({ onSubmit, onPhotoSubmit, submissions, pho
       )}
 
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-5">
+        {isDuplicateRound && (
+          <p className="text-xs text-red-500">
+            이미 {MENTORING_ROUNDS[todayRoundIdx].label}에 제출한 활동일지가 있습니다. 차수당 1건만 제출할 수 있습니다.
+          </p>
+        )}
         <div className="grid grid-cols-2 gap-4">
-          <Field label="활동 날짜" required>
-            <input type="date" name="date" value={form.date} onChange={handleChange} required className={inputCls} />
-          </Field>
           <Field label="소속 부서" required>
             <input name="department" value={form.department} onChange={handleChange} required placeholder="예: 개발팀" className={inputCls} />
           </Field>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="인턴 이름" required>
-            <input name="internName" value={form.internName} onChange={handleChange} required placeholder="홍길동" className={inputCls} />
-          </Field>
-          <Field label="멘토 이름" required>
-            <input name="mentorName" value={form.mentorName} onChange={handleChange} required placeholder="김멘토" className={inputCls} />
+          <Field label="인턴 이름">
+            <input value={internName} readOnly className="w-full border border-gray-100 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500 cursor-default" />
           </Field>
         </div>
 
-        <Field label="활동 시간">
-          <select name="duration" value={form.duration} onChange={handleChange} className={inputCls}>
-            <option value="">선택</option>
-            <option>30분</option>
-            <option>1시간</option>
-            <option>1시간 30분</option>
-            <option>2시간</option>
-            <option>2시간 이상</option>
-          </select>
+        <Field label="멘토 이름" required>
+          <input name="mentorName" value={form.mentorName} onChange={handleChange} required placeholder="김멘토" className={inputCls} />
         </Field>
 
         <Field label="활동 내용" required>
@@ -194,8 +216,8 @@ export default function MentoringTab({ onSubmit, onPhotoSubmit, submissions, pho
               임시저장됨 · {draftSavedAt.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
             </p>
           )}
-          <button type="submit" disabled={submitting} className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-3 rounded-xl transition-colors">
-            {submitting ? "제출 중..." : "활동일지 제출하기"}
+          <button type="submit" disabled={submitting || isDuplicateRound} className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-3 rounded-xl transition-colors">
+            {submitting ? "제출 중..." : isDuplicateRound ? "이번 차수 제출 완료" : "활동일지 제출하기"}
           </button>
         </div>
       </form>

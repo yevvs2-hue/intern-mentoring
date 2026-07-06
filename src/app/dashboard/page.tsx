@@ -179,10 +179,11 @@ function DashboardInner() {
           />
         )}
         {activeTab === "plan" && (
-          <PlanTab plan={plan} onSubmit={handlePlanSubmit} />
+          <PlanTab plan={plan} internName={intern.name} onSubmit={handlePlanSubmit} />
         )}
         {activeTab === "mentoring" && (
           <MentoringTab
+            internName={intern.name}
             submissions={mentoringList}
             onSubmit={handleMentoringSubmit}
             onPhotoSubmit={handlePhotoSubmit}
@@ -193,6 +194,7 @@ function DashboardInner() {
         )}
         {activeTab === "senior" && (
           <SeniorTab
+            internName={intern.name}
             submissions={seniorList}
             onSubmit={handleSeniorSubmit}
             onPhotoSubmit={handlePhotoSubmit}
