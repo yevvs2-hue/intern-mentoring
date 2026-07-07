@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import * as XLSX from "xlsx";
 import { downloadPdf } from "@/lib/download-pdf";
 import CalendarTab from "@/components/CalendarTab";
+import { MENTORING_ROUNDS, getRoundIndex } from "@/lib/rounds";
 import { MentoringSubmission, SeniorSubmission, ManualSubmission, PhotoSubmission, PlanSubmission, Intern } from "@/types";
 
 interface AllSubmissions {
@@ -403,6 +404,29 @@ function InternManagementTab({ interns, onRefresh }: { interns: Intern[]; onRefr
 
 const REQUIRED = { mentoring: 3, senior: 3, manual: 1 } as const;
 
+function RoundSummaryCard({ icon, label, byRound, total, color }: { icon: string; label: string; byRound: number[]; total: number; color: "blue" | "purple" }) {
+  const theme = {
+    blue: { border: "border-blue-100", bg: "bg-blue-50", label: "text-blue-600", value: "text-blue-700", faint: "text-blue-400" },
+    purple: { border: "border-purple-100", bg: "bg-purple-50", label: "text-purple-600", value: "text-purple-700", faint: "text-purple-400" },
+  }[color];
+  return (
+    <div className={`rounded-2xl border ${theme.border} ${theme.bg} p-4`}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-2xl">{icon}</span>
+        <span className={`text-xs font-semibold ${theme.label}`}>{label}</span>
+      </div>
+      <div className="space-y-0.5">
+        {MENTORING_ROUNDS.map((r, i) => (
+          <div key={r.label} className="flex items-center justify-between">
+            <span className={`text-xs ${theme.label}`}>{r.label}</span>
+            <span className={`text-sm font-semibold ${theme.value}`}>{byRound[i]}<span className={`text-xs font-normal ${theme.faint}`}>/{total}</span></span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Dots({ filled, total, color }: { filled: number; total: number; color: string }) {
   const dotFilled: Record<string, string> = {
     blue: "bg-blue-500",
@@ -425,35 +449,33 @@ function Dots({ filled, total, color }: { filled: number; total: number; color: 
 
 function OverviewTab({ data }: { data: AllSubmissions }) {
   const n = data.interns.length;
-  const mentoringComplete = data.interns.filter(
-    (i) => data.mentoring.filter((s) => s.employeeId === i.employeeId).length >= REQUIRED.mentoring
-  ).length;
-  const seniorComplete = data.interns.filter(
-    (i) => data.senior.filter((s) => s.employeeId === i.employeeId).length >= REQUIRED.senior
-  ).length;
+  const planCount = new Set(data.plan.map((p) => p.employeeId)).size;
   const manualComplete = data.interns.filter(
     (i) => data.manual.filter((s) => s.employeeId === i.employeeId).length >= REQUIRED.manual
   ).length;
+  const mentoringByRound = MENTORING_ROUNDS.map(
+    (_, i) => new Set(data.mentoring.filter((s) => getRoundIndex(s.date) === i).map((s) => s.employeeId)).size
+  );
+  const seniorByRound = MENTORING_ROUNDS.map(
+    (_, i) => new Set(data.senior.filter((s) => getRoundIndex(s.date) === i).map((s) => s.employeeId)).size
+  );
 
   return (
     <div className="space-y-6">
       {/* 요약 카드 */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
           <div className="text-2xl mb-1">👤</div>
           <div className="text-2xl font-bold text-gray-700">{n}</div>
           <div className="text-xs text-gray-500 mt-0.5">등록 인턴</div>
         </div>
-        <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
-          <div className="text-2xl mb-1">📝</div>
-          <div className="text-2xl font-bold text-blue-700">{mentoringComplete}<span className="text-sm font-normal text-blue-400">/{n}</span></div>
-          <div className="text-xs text-blue-600 mt-0.5">멘토링 완료 (3회)</div>
+        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+          <div className="text-2xl mb-1">📋</div>
+          <div className="text-2xl font-bold text-gray-700">{planCount}<span className="text-sm font-normal text-gray-400">/{n}</span></div>
+          <div className="text-xs text-gray-600 mt-0.5">계획서 제출</div>
         </div>
-        <div className="rounded-2xl border border-purple-100 bg-purple-50 p-4">
-          <div className="text-2xl mb-1">🔍</div>
-          <div className="text-2xl font-bold text-purple-700">{seniorComplete}<span className="text-sm font-normal text-purple-400">/{n}</span></div>
-          <div className="text-xs text-purple-600 mt-0.5">선배탐구 완료 (3회)</div>
-        </div>
+        <RoundSummaryCard icon="📝" label="멘토링" byRound={mentoringByRound} total={n} color="blue" />
+        <RoundSummaryCard icon="🔍" label="선배탐구" byRound={seniorByRound} total={n} color="purple" />
         <div className="rounded-2xl border border-green-100 bg-green-50 p-4">
           <div className="text-2xl mb-1">📖</div>
           <div className="text-2xl font-bold text-green-700">{manualComplete}<span className="text-sm font-normal text-green-400">/{n}</span></div>
