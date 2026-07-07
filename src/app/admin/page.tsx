@@ -145,7 +145,7 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-4">
             <img src="/logo.png" alt="미래에셋증권" className="hidden sm:block h-7 object-contain" />
             <div>
@@ -171,7 +171,7 @@ export default function AdminPage() {
       </header>
 
       <div className="border-b border-gray-200 bg-white sticky top-0 z-10">
-        <nav className="max-w-5xl mx-auto flex overflow-x-auto px-6">
+        <nav className="max-w-4xl mx-auto flex overflow-x-auto px-6">
           {adminTabs.map((tab) => (
             <button
               key={tab.id}
@@ -189,7 +189,7 @@ export default function AdminPage() {
         </nav>
       </div>
 
-      <main className="max-w-5xl mx-auto p-6">
+      <main className="max-w-4xl mx-auto p-6">
         {!data ? (
           <div className="text-center text-gray-400 py-20 text-sm">데이터를 불러오는 중...</div>
         ) : (
