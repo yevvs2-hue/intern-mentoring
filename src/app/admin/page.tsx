@@ -433,12 +433,6 @@ function OverviewTab({ data }: { data: AllSubmissions }) {
   const manualComplete = data.interns.filter(
     (i) => data.manual.filter((s) => s.employeeId === i.employeeId).length >= REQUIRED.manual
   ).length;
-  const allComplete = data.interns.filter((i) => {
-    const m = data.mentoring.filter((s) => s.employeeId === i.employeeId).length;
-    const sr = data.senior.filter((s) => s.employeeId === i.employeeId).length;
-    const mn = data.manual.filter((s) => s.employeeId === i.employeeId).length;
-    return m >= REQUIRED.mentoring && sr >= REQUIRED.senior && mn >= REQUIRED.manual;
-  }).length;
 
   return (
     <div className="space-y-6">
@@ -466,16 +460,6 @@ function OverviewTab({ data }: { data: AllSubmissions }) {
         </div>
       </div>
 
-      {/* 전체 완료 배너 */}
-      {n > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 px-5 py-3 flex items-center justify-between">
-          <span className="text-sm text-gray-600">전체 과제 완료</span>
-          <span className="text-sm font-semibold text-gray-800">{allComplete}명 / {n}명
-            <span className="ml-2 text-xs font-normal text-gray-400">({n > 0 ? Math.round(allComplete / n * 100) : 0}%)</span>
-          </span>
-        </div>
-      )}
-
       {/* 제출 캘린더 */}
       <div>
         <h2 className="text-base font-semibold text-gray-700 mb-3">제출 캘린더</h2>
@@ -488,6 +472,12 @@ function OverviewTab({ data }: { data: AllSubmissions }) {
         />
       </div>
 
+      {/* 주차별 현황 */}
+      <div>
+        <h2 className="text-base font-semibold text-gray-700 mb-3">주차별 현황</h2>
+        <WeeklySection data={data} />
+      </div>
+
       {/* 인턴별 제출 현황 테이블 */}
       <div>
         <h2 className="text-base font-semibold text-gray-700 mb-3">인턴별 제출 현황</h2>
@@ -498,20 +488,18 @@ function OverviewTab({ data }: { data: AllSubmissions }) {
         ) : (
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             {/* 헤더 */}
-            <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center px-5 py-2.5 bg-gray-50 border-b border-gray-100 text-xs font-medium text-gray-500 gap-4">
+            <div className="grid grid-cols-[1fr_auto_auto_auto] items-center px-5 py-2.5 bg-gray-50 border-b border-gray-100 text-xs font-medium text-gray-500 gap-4">
               <span>이름</span>
               <span className="text-center w-24">멘토링 (3회)</span>
               <span className="text-center w-24">선배탐구 (3회)</span>
               <span className="text-center w-20">멘토링 리뷰 (1회)</span>
-              <span className="text-center w-12">완료</span>
             </div>
             {data.interns.map((intern) => {
               const m = data.mentoring.filter((s) => s.employeeId === intern.employeeId).length;
               const sr = data.senior.filter((s) => s.employeeId === intern.employeeId).length;
               const mn = data.manual.filter((s) => s.employeeId === intern.employeeId).length;
-              const done = m >= REQUIRED.mentoring && sr >= REQUIRED.senior && mn >= REQUIRED.manual;
               return (
-                <div key={intern.employeeId} className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center px-5 py-3.5 border-b border-gray-50 last:border-0 gap-4 hover:bg-gray-50 transition-colors">
+                <div key={intern.employeeId} className="grid grid-cols-[1fr_auto_auto_auto] items-center px-5 py-3.5 border-b border-gray-50 last:border-0 gap-4 hover:bg-gray-50 transition-colors">
                   <div>
                     <span className="font-medium text-gray-800 text-sm">{intern.name}</span>
                     <span className="text-xs text-gray-400 ml-1.5">{intern.employeeId}</span>
@@ -528,23 +516,11 @@ function OverviewTab({ data }: { data: AllSubmissions }) {
                     <Dots filled={Math.min(mn, REQUIRED.manual)} total={REQUIRED.manual} color="green" />
                     <span className={`text-xs font-medium ${mn >= REQUIRED.manual ? "text-green-600" : "text-gray-400"}`}>{mn}/{REQUIRED.manual}</span>
                   </div>
-                  <div className="w-12 flex justify-center">
-                    {done
-                      ? <span className="text-xs font-semibold text-green-600 bg-green-50 border border-green-200 rounded-full px-2 py-0.5">완료</span>
-                      : <span className="text-xs font-semibold text-gray-400 bg-gray-50 border border-gray-200 rounded-full px-2 py-0.5">진행중</span>
-                    }
-                  </div>
                 </div>
               );
             })}
           </div>
         )}
-      </div>
-
-      {/* 주차별 현황 */}
-      <div>
-        <h2 className="text-base font-semibold text-gray-700 mb-3">주차별 현황</h2>
-        <WeeklySection data={data} />
       </div>
     </div>
   );
