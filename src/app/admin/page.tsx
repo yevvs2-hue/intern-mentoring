@@ -878,7 +878,8 @@ function PlanAdminTab({ plans }: { plans: PlanSubmission[] }) {
             </div>
             <div className="text-right">
               <p className="text-xs text-gray-400">멘토: {p.mentorName}</p>
-              <p className="text-xs text-gray-400">{new Date(p.submittedAt).toLocaleDateString("ko-KR")}</p>
+              <p className="text-xs text-gray-400 mb-1">{new Date(p.submittedAt).toLocaleDateString("ko-KR")}</p>
+              <button type="button" onClick={() => downloadPdf(`/api/pdf/plan/${p.id}`, `멘토링계획서_${p.internName}.pdf`)} className="text-xs text-gray-600 hover:text-gray-700 border border-gray-300 rounded px-2 py-0.5">PDF</button>
             </div>
           </div>
           <div className="space-y-3">

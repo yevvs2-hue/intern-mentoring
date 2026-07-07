@@ -32,6 +32,11 @@ next-env.d.ts
 
 # data
 data/
+public/uploads/
+
+# real intern PII - never commit
+*.xlsx
+*.xls
 
 .vercel
 .env*

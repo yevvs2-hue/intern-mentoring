@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { mutateStore } from "@/lib/store";
+import { mutateStore, isLocal } from "@/lib/store";
 import { PhotoSubmission } from "@/types";
 import { put } from "@vercel/blob";
+import fs from "fs";
 import path from "path";
 
 export async function POST(req: NextRequest) {
@@ -25,8 +26,17 @@ export async function POST(req: NextRequest) {
   }
 
   const ext = path.extname(file.name) || ".jpg";
-  const blobName = `photos/${type}_${crypto.randomUUID()}${ext}`;
-  const { url: fileUrl } = await put(blobName, file, { access: "private" });
+  const diskName = `${type}_${crypto.randomUUID()}${ext}`;
+
+  let fileUrl: string;
+  if (isLocal) {
+    const dir = path.join(process.cwd(), "public", "uploads", "photos");
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, diskName), Buffer.from(await file.arrayBuffer()));
+    fileUrl = `/uploads/photos/${diskName}`;
+  } else {
+    ({ url: fileUrl } = await put(`photos/${diskName}`, file, { access: "private" }));
+  }
 
   const submission: PhotoSubmission = {
     id: crypto.randomUUID(),

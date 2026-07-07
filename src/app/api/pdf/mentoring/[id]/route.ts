@@ -4,10 +4,19 @@ import { readStore } from "@/lib/store";
 import { MentoringPDF } from "@/lib/pdf-templates";
 import { PhotoSubmission } from "@/types";
 import React from "react";
+import fs from "fs";
+import path from "path";
 
 async function resolvePhotos(photos: PhotoSubmission[]) {
   return Promise.all(photos.map(async (p) => {
     try {
+      if (p.fileUrl.startsWith("/uploads/")) {
+        const filePath = path.join(process.cwd(), "public", p.fileUrl);
+        const buffer = await fs.promises.readFile(filePath);
+        const ext = path.extname(filePath).toLowerCase();
+        const contentType = ext === ".png" ? "image/png" : ext === ".gif" ? "image/gif" : ext === ".webp" ? "image/webp" : "image/jpeg";
+        return { ...p, fileUrl: `data:${contentType};base64,${buffer.toString("base64")}` };
+      }
       const res = await fetch(p.fileUrl, {
         headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
       });

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PlanSubmission } from "@/types";
 import { useDraft } from "@/hooks/useDraft";
+import { downloadPdf } from "@/lib/download-pdf";
 
 interface PlanTabProps {
   plan: PlanSubmission | null;
@@ -43,12 +44,20 @@ export default function PlanTab({ plan, internName, onSubmit }: PlanTabProps) {
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-bold text-gray-900">멘토링 계획서</h2>
-            <button
-              onClick={() => setEditing(true)}
-              className="text-sm text-blue-600 hover:text-blue-700 border border-blue-200 rounded-lg px-3 py-1.5 transition-colors"
-            >
-              수정
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => downloadPdf(`/api/pdf/plan/${plan.id}`, `멘토링계획서_${plan.internName}.pdf`)}
+                className="text-sm text-gray-600 hover:text-gray-700 border border-gray-300 rounded-lg px-3 py-1.5 transition-colors"
+              >
+                PDF
+              </button>
+              <button
+                onClick={() => setEditing(true)}
+                className="text-sm text-blue-600 hover:text-blue-700 border border-blue-200 rounded-lg px-3 py-1.5 transition-colors"
+              >
+                수정
+              </button>
+            </div>
           </div>
           <div className="space-y-5">
             <div className="grid grid-cols-3 gap-4">

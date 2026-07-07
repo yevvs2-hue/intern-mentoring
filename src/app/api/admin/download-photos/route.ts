@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readStore } from "@/lib/store";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const archiver = require("archiver") as (format: string, options?: object) => import("archiver").Archiver;
+import { ZipArchive } from "archiver";
 import { PassThrough, Readable } from "stream";
 import fs from "fs";
 import path from "path";
@@ -18,7 +17,7 @@ export async function GET(req: NextRequest) {
   }
 
   const pass = new PassThrough();
-  const archive = archiver("zip", { zlib: { level: 6 } });
+  const archive = new ZipArchive({ zlib: { level: 6 } });
 
   archive.on("error", (err) => { throw err; });
   archive.pipe(pass);

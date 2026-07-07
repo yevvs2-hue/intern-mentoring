@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import TabNav from "@/components/TabNav";
 import HomeTab from "@/components/HomeTab";
-import CalendarTab from "@/components/CalendarTab";
 import MentoringTab from "@/components/MentoringTab";
 import SeniorTab from "@/components/SeniorTab";
 import ManualTab from "@/components/ManualTab";

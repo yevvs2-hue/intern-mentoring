@@ -1,6 +1,6 @@
 import { Document, Page, Text, View, StyleSheet, Font, Image } from "@react-pdf/renderer";
 import path from "path";
-import { MentoringSubmission, SeniorSubmission, PhotoSubmission } from "@/types";
+import { MentoringSubmission, SeniorSubmission, PlanSubmission, PhotoSubmission } from "@/types";
 
 Font.register({
   family: "NanumGothic",
@@ -13,6 +13,7 @@ Font.register({
 const c = {
   blue: "#2563EB",
   purple: "#7C3AED",
+  gray600: "#4B5563",
   lightBlue: "#EFF6FF",
   lightPurple: "#F5F3FF",
   gray50: "#F9FAFB",
@@ -182,6 +183,51 @@ export function SeniorPDF({ s, photos = [] }: { s: SeniorSubmission; photos?: Ph
 
         <View style={base.footer}>
           <Text style={base.footerText}>2026 하반기 체험형 인턴 - 선배 탐구생활</Text>
+          <Text style={base.footerText}>{s.internName} · {s.employeeId}</Text>
+        </View>
+      </Page>
+    </Document>
+  );
+}
+
+export function PlanPDF({ s }: { s: PlanSubmission }) {
+  return (
+    <Document title={`멘토링 계획서_${s.internName}`}>
+      <Page size="A4" style={base.page}>
+        <View style={base.header}>
+          <View style={base.headerTop}>
+            <View>
+              <Text style={base.title}>멘토링 계획서</Text>
+              <Text style={base.subtitle}>2026 하반기 체험형 인턴 - 멘토링 프로그램</Text>
+            </View>
+            <View style={[base.badge, { backgroundColor: c.gray600 }]}>
+              <Text>{new Date(s.submittedAt).toISOString().slice(0, 10)}</Text>
+            </View>
+          </View>
+          <View style={base.divider} />
+        </View>
+
+        <View style={base.infoGrid}>
+          <View style={base.infoCard}>
+            <Text style={base.infoLabel}>인턴 이름</Text>
+            <Text style={base.infoValue}>{s.internName}</Text>
+          </View>
+          <View style={base.infoCard}>
+            <Text style={base.infoLabel}>멘토 이름</Text>
+            <Text style={base.infoValue}>{s.mentorName}</Text>
+          </View>
+          <View style={base.infoCard}>
+            <Text style={base.infoLabel}>소속 부서</Text>
+            <Text style={base.infoValue}>{s.department}</Text>
+          </View>
+        </View>
+
+        <Section label="멘토링 계획" value={s.mentoringPlan} bg={c.gray50} dot={c.gray600} />
+        <Section label="선배 탐구생활 계획" value={s.seniorPlan} bg={c.gray50} dot={c.gray600} />
+        <Section label="인턴 기간 목표" value={s.goal} bg={c.gray50} dot={c.gray600} />
+
+        <View style={base.footer}>
+          <Text style={base.footerText}>2026 하반기 체험형 인턴 - 멘토링 계획서</Text>
           <Text style={base.footerText}>{s.internName} · {s.employeeId}</Text>
         </View>
       </Page>

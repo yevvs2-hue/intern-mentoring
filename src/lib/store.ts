@@ -11,7 +11,7 @@ const LOCK_ACQUIRE_TIMEOUT_MS = 10_000;
 const INITIAL: SubmissionsStore = { interns: [], mentoring: [], senior: [], manual: [], photos: [], plan: [] };
 
 const LOCAL_STORE_PATH = path.join(process.cwd(), "data", "submissions.local.json");
-const isLocal = !process.env.BLOB_READ_WRITE_TOKEN;
+export const isLocal = !process.env.BLOB_READ_WRITE_TOKEN;
 
 function readLocalStore(): SubmissionsStore {
   try {
