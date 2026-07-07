@@ -929,7 +929,7 @@ function ManualAdminTab({ submissions }: { submissions: ManualSubmission[] }) {
             </div>
             <button
               type="button"
-              onClick={() => s.fileUrl && downloadPdf(s.fileUrl, s.fileName)}
+              onClick={() => s.fileUrl && downloadPdf(`/api/manuals/${s.id}`, s.fileName)}
               disabled={!s.fileUrl}
               className="text-xs text-green-600 hover:text-green-700 border border-green-200 rounded-lg px-3 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
             >

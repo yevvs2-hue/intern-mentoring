@@ -215,7 +215,7 @@ export default function ManualTab({ onSubmit, onSubmitMeta, submissions, onDelet
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <a
-                    href={s.fileUrl}
+                    href={`/api/manuals/${s.id}`}
                     download={s.fileName}
                     className="text-xs text-green-600 hover:text-green-700 font-medium border border-green-200 rounded-lg px-3 py-1.5"
                   >
