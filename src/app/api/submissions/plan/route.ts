@@ -12,6 +12,23 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ plan });
 }
 
+export async function DELETE(req: NextRequest) {
+  const body = await req.json();
+  const { id, employeeId } = body as { id: string; employeeId: string };
+  if (!id || !employeeId) {
+    return NextResponse.json({ error: "id and employeeId are required" }, { status: 400 });
+  }
+  const found = await mutateStore((store) => {
+    const before = store.plan.length;
+    store.plan = store.plan.filter((p) => !(p.id === id && p.employeeId === employeeId));
+    return store.plan.length !== before;
+  });
+  if (!found) {
+    return NextResponse.json({ error: "Not found or forbidden" }, { status: 404 });
+  }
+  return NextResponse.json({ success: true });
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json() as Omit<PlanSubmission, "id" | "submittedAt">;
   const { employeeId, internName, department, mentorName, mentoringPlan, seniorPlan, goal } = body;

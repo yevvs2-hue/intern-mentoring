@@ -6,6 +6,7 @@ import { ManualSubmission } from "@/types";
 interface ManualTabProps {
   onSubmit: (formData: FormData) => Promise<void>;
   submissions: ManualSubmission[];
+  onDelete: (id: string) => Promise<void>;
 }
 
 const ACCEPTED = ".ppt,.pptx,.pdf,.mp4,.mov,.avi,.webm";
@@ -23,7 +24,7 @@ function fileIcon(fileName: string) {
   return "📁";
 }
 
-export default function ManualTab({ onSubmit, submissions }: ManualTabProps) {
+export default function ManualTab({ onSubmit, submissions, onDelete }: ManualTabProps) {
   const [internName, setInternName] = useState("");
   const [department, setDepartment] = useState("");
   const [description, setDescription] = useState("");
@@ -32,7 +33,18 @@ export default function ManualTab({ onSubmit, submissions }: ManualTabProps) {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("이 제출 건을 삭제하시겠습니까?")) return;
+    setDeletingId(id);
+    try {
+      await onDelete(id);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const handleFile = (f: File) => {
     setError("");
@@ -177,13 +189,23 @@ export default function ManualTab({ onSubmit, submissions }: ManualTabProps) {
                   <p className="text-xs text-gray-400">{s.internName} · {s.department} · {formatBytes(s.fileSize)}</p>
                   {s.description && <p className="text-xs text-gray-500 mt-0.5 truncate">{s.description}</p>}
                 </div>
-                <a
-                  href={s.fileUrl}
-                  download={s.fileName}
-                  className="text-xs text-green-600 hover:text-green-700 font-medium border border-green-200 rounded-lg px-3 py-1.5 shrink-0"
-                >
-                  다운로드
-                </a>
+                <div className="flex items-center gap-2 shrink-0">
+                  <a
+                    href={s.fileUrl}
+                    download={s.fileName}
+                    className="text-xs text-green-600 hover:text-green-700 font-medium border border-green-200 rounded-lg px-3 py-1.5"
+                  >
+                    다운로드
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(s.id)}
+                    disabled={deletingId === s.id}
+                    className="text-xs text-red-500 hover:text-red-700 border border-red-200 rounded-lg px-3 py-1.5 disabled:opacity-40"
+                  >
+                    {deletingId === s.id ? "삭제 중..." : "삭제"}
+                  </button>
+                </div>
               </div>
             ))}
           </div>

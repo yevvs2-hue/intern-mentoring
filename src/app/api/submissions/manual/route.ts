@@ -1,9 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mutateStore, isLocal } from "@/lib/store";
 import { ManualSubmission } from "@/types";
-import { put } from "@vercel/blob";
+import { put, del } from "@vercel/blob";
 import fs from "fs";
 import path from "path";
+
+export async function DELETE(req: NextRequest) {
+  const body = await req.json();
+  const { id, employeeId } = body as { id: string; employeeId: string };
+  if (!id || !employeeId) {
+    return NextResponse.json({ error: "id and employeeId are required" }, { status: 400 });
+  }
+  const removed = await mutateStore((store) => {
+    const target = store.manual.find((s) => s.id === id && s.employeeId === employeeId);
+    store.manual = store.manual.filter((s) => !(s.id === id && s.employeeId === employeeId));
+    return target ?? null;
+  });
+  if (!removed) {
+    return NextResponse.json({ error: "Not found or forbidden" }, { status: 404 });
+  }
+  if (removed.fileUrl.startsWith("/uploads/")) {
+    try { fs.unlinkSync(path.join(process.cwd(), "public", removed.fileUrl)); } catch {}
+  } else if (!isLocal) {
+    await del(removed.fileUrl).catch(() => {});
+  }
+  return NextResponse.json({ success: true });
+}
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();

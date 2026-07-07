@@ -129,6 +129,26 @@ function DashboardInner() {
     await fetchSubmissions(intern.employeeId);
   };
 
+  const handlePlanDelete = async (id: string) => {
+    if (!intern) return;
+    await fetch("/api/submissions/plan", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, employeeId: intern.employeeId }),
+    });
+    await fetchSubmissions(intern.employeeId);
+  };
+
+  const handleManualDelete = async (id: string) => {
+    if (!intern) return;
+    await fetch("/api/submissions/manual", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, employeeId: intern.employeeId }),
+    });
+    await fetchSubmissions(intern.employeeId);
+  };
+
   const handleRefresh = async () => {
     if (!intern) return;
     await fetchSubmissions(intern.employeeId);
@@ -178,7 +198,7 @@ function DashboardInner() {
           />
         )}
         {activeTab === "plan" && (
-          <PlanTab plan={plan} internName={intern.name} onSubmit={handlePlanSubmit} />
+          <PlanTab plan={plan} internName={intern.name} onSubmit={handlePlanSubmit} onDelete={handlePlanDelete} />
         )}
         {activeTab === "mentoring" && (
           <MentoringTab
@@ -206,6 +226,7 @@ function DashboardInner() {
           <ManualTab
             submissions={manualList}
             onSubmit={handleManualSubmit as (formData: FormData) => Promise<void>}
+            onDelete={handleManualDelete}
           />
         )}
       </main>

@@ -9,9 +9,22 @@ interface PlanTabProps {
   plan: PlanSubmission | null;
   internName: string;
   onSubmit: (data: Omit<PlanSubmission, "id" | "submittedAt" | "employeeId" | "internName">) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }
 
-export default function PlanTab({ plan, internName, onSubmit }: PlanTabProps) {
+export default function PlanTab({ plan, internName, onSubmit, onDelete }: PlanTabProps) {
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!plan || !confirm("계획서를 삭제하시겠습니까?")) return;
+    setDeleting(true);
+    try {
+      await onDelete(plan.id);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const [editing, setEditing] = useState(!plan);
   const syncedInitialPlan = useRef(false);
   useEffect(() => {
@@ -77,6 +90,13 @@ export default function PlanTab({ plan, internName, onSubmit }: PlanTabProps) {
                 className="text-sm text-blue-600 hover:text-blue-700 border border-blue-200 rounded-lg px-3 py-1.5 transition-colors"
               >
                 수정
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="text-sm text-red-500 hover:text-red-700 border border-red-200 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-40"
+              >
+                {deleting ? "삭제 중..." : "삭제"}
               </button>
             </div>
           </div>
