@@ -28,6 +28,32 @@ export async function DELETE(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const contentType = req.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    // 파일을 브라우저에서 Vercel Blob으로 직접 업로드한 뒤, 메타데이터만 저장 (서버리스 함수 요청 크기 제한 우회)
+    const body = await req.json();
+    const { employeeId, internName, department, description, fileUrl, fileName, fileSize } = body as {
+      employeeId: string; internName: string; department: string; description: string;
+      fileUrl: string; fileName: string; fileSize: number;
+    };
+    if (!employeeId || !internName || !department || !fileUrl || !fileName) {
+      return NextResponse.json({ error: "필수 항목이 누락되었습니다." }, { status: 400 });
+    }
+    const submission: ManualSubmission = {
+      id: crypto.randomUUID(),
+      employeeId, internName, department,
+      description: description ?? "",
+      fileName, fileUrl,
+      fileSize: fileSize ?? 0,
+      submittedAt: new Date().toISOString(),
+    };
+    await mutateStore((store) => {
+      store.manual.push(submission);
+    });
+    return NextResponse.json({ submission });
+  }
+
   const formData = await req.formData();
 
   const employeeId = formData.get("employeeId") as string;

@@ -6,7 +6,7 @@ import TabNav from "@/components/TabNav";
 import HomeTab from "@/components/HomeTab";
 import MentoringTab from "@/components/MentoringTab";
 import SeniorTab from "@/components/SeniorTab";
-import ManualTab from "@/components/ManualTab";
+import ManualTab, { ManualUploadMeta } from "@/components/ManualTab";
 import PhotoTab from "@/components/PhotoTab";
 import PlanTab from "@/components/PlanTab";
 import { MentoringSubmission, SeniorSubmission, ManualSubmission, PhotoSubmission, PlanSubmission, Intern } from "@/types";
@@ -98,7 +98,19 @@ function DashboardInner() {
   const handleManualSubmit = async (formData: FormData) => {
     if (!intern) return;
     formData.append("employeeId", intern.employeeId);
-    await fetch("/api/submissions/manual", { method: "POST", body: formData });
+    const res = await fetch("/api/submissions/manual", { method: "POST", body: formData });
+    if (!res.ok) throw new Error("멘토링 리뷰 제출에 실패했습니다.");
+    await fetchSubmissions(intern.employeeId);
+  };
+
+  const handleManualSubmitMeta = async (meta: ManualUploadMeta) => {
+    if (!intern) return;
+    const res = await fetch("/api/submissions/manual", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...meta, employeeId: intern.employeeId }),
+    });
+    if (!res.ok) throw new Error("멘토링 리뷰 제출에 실패했습니다.");
     await fetchSubmissions(intern.employeeId);
   };
 
@@ -226,6 +238,7 @@ function DashboardInner() {
           <ManualTab
             submissions={manualList}
             onSubmit={handleManualSubmit as (formData: FormData) => Promise<void>}
+            onSubmitMeta={handleManualSubmitMeta}
             onDelete={handleManualDelete}
           />
         )}

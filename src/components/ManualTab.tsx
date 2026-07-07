@@ -1,10 +1,21 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { upload } from "@vercel/blob/client";
 import { ManualSubmission } from "@/types";
+
+export interface ManualUploadMeta {
+  internName: string;
+  department: string;
+  description: string;
+  fileUrl: string;
+  fileName: string;
+  fileSize: number;
+}
 
 interface ManualTabProps {
   onSubmit: (formData: FormData) => Promise<void>;
+  onSubmitMeta: (meta: ManualUploadMeta) => Promise<void>;
   submissions: ManualSubmission[];
   onDelete: (id: string) => Promise<void>;
 }
@@ -24,7 +35,7 @@ function fileIcon(fileName: string) {
   return "📁";
 }
 
-export default function ManualTab({ onSubmit, submissions, onDelete }: ManualTabProps) {
+export default function ManualTab({ onSubmit, onSubmitMeta, submissions, onDelete }: ManualTabProps) {
   const [internName, setInternName] = useState("");
   const [department, setDepartment] = useState("");
   const [description, setDescription] = useState("");
@@ -64,12 +75,25 @@ export default function ManualTab({ onSubmit, submissions, onDelete }: ManualTab
     setSubmitting(true);
     setError("");
     try {
-      const fd = new FormData();
-      fd.append("internName", internName);
-      fd.append("department", department);
-      fd.append("description", description);
-      fd.append("file", file);
-      await onSubmit(fd);
+      // 큰 파일이 서버리스 함수 요청 크기 제한(4.5MB)에 걸리지 않도록 브라우저에서 Blob으로 직접 업로드
+      try {
+        const blob = await upload(`manuals/${crypto.randomUUID()}-${file.name}`, file, {
+          access: "private",
+          handleUploadUrl: "/api/submissions/manual/upload",
+        });
+        await onSubmitMeta({
+          internName, department, description,
+          fileUrl: blob.url, fileName: file.name, fileSize: file.size,
+        });
+      } catch {
+        // Blob 토큰이 없는 로컬 환경 등 직접 업로드가 불가능한 경우 기존 방식으로 대체
+        const fd = new FormData();
+        fd.append("internName", internName);
+        fd.append("department", department);
+        fd.append("description", description);
+        fd.append("file", file);
+        await onSubmit(fd);
+      }
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 3000);
       setInternName("");
