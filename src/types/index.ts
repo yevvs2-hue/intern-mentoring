@@ -20,6 +20,7 @@ export interface SeniorSubmission {
   employeeId: string;
   internName: string;
   seniorName: string;
+  seniorDepartment: string;
   department: string;
   topic: string;
   content: string;

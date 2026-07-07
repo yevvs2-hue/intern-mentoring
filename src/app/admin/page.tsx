@@ -134,11 +134,11 @@ export default function AdminPage() {
 
   const adminTabs: { id: AdminTab; label: string; icon: string }[] = [
     { id: "overview", label: "현황", icon: "📊" },
-    { id: "interns", label: "인턴 관리", icon: "👤" },
     { id: "plan", label: "계획서", icon: "📋" },
     { id: "mentoring", label: "멘토링", icon: "📝" },
     { id: "senior", label: "선배탐구", icon: "🔍" },
     { id: "manual", label: "멘토링 리뷰", icon: "📖" },
+    { id: "interns", label: "인턴 관리", icon: "👤" },
   ];
 
   return (
@@ -378,9 +378,10 @@ function InternManagementTab({ interns, onRefresh }: { interns: Intern[]; onRefr
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-            {interns.map((intern) => (
+            {interns.map((intern, i) => (
               <div key={intern.employeeId} className="flex items-center justify-between px-5 py-4">
                 <div>
+                  <span className="text-xs text-gray-400 mr-2 tabular-nums">{i + 1}</span>
                   <span className="font-medium text-gray-800">{intern.name}</span>
                   <span className="text-xs text-gray-400 ml-2">사번: {intern.employeeId}</span>
                 </div>
@@ -804,7 +805,7 @@ function SeniorAdminTab({ submissions, photos, onRefresh }: { submissions: Senio
                       </button>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500 mb-2">{s.department} · 선배: {s.seniorName}</p>
+                  <p className="text-xs text-gray-500 mb-2">{s.department} · 선배: {s.seniorName} ({s.seniorDepartment})</p>
                   <p className="text-sm text-gray-700 whitespace-pre-wrap">{s.content}</p>
                   {s.insights && (
                     <div className="mt-2">

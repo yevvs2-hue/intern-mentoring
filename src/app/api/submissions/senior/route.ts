@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { mutateStore } from "@/lib/store";
+import { mutateStore, isLocal } from "@/lib/store";
 import { SeniorSubmission, PhotoSubmission } from "@/types";
 import { put } from "@vercel/blob";
+import fs from "fs";
 import path from "path";
 
 export async function DELETE(req: NextRequest) {
@@ -62,6 +63,7 @@ export async function POST(req: NextRequest) {
     const employeeId = formData.get("employeeId") as string;
     const internName = formData.get("internName") as string;
     const seniorName = formData.get("seniorName") as string;
+    const seniorDepartment = formData.get("seniorDepartment") as string;
     const department = formData.get("department") as string;
     const date = formData.get("date") as string;
     const topic = formData.get("topic") as string;
@@ -73,14 +75,24 @@ export async function POST(req: NextRequest) {
     const senior: SeniorSubmission = {
       id: crypto.randomUUID(),
       submittedAt: now,
-      employeeId, internName, seniorName, department, date, topic, content, insights,
+      employeeId, internName, seniorName, seniorDepartment, department, date, topic, content, insights,
     };
 
     const photos: PhotoSubmission[] = [];
     for (const file of files) {
       const ext = path.extname(file.name) || ".jpg";
-      const blobName = `photos/senior_${crypto.randomUUID()}${ext}`;
-      const { url: fileUrl } = await put(blobName, file, { access: "private" });
+      const diskName = `senior_${crypto.randomUUID()}${ext}`;
+
+      let fileUrl: string;
+      if (isLocal) {
+        const dir = path.join(process.cwd(), "public", "uploads", "photos");
+        fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(path.join(dir, diskName), Buffer.from(await file.arrayBuffer()));
+        fileUrl = `/uploads/photos/${diskName}`;
+      } else {
+        ({ url: fileUrl } = await put(`photos/${diskName}`, file, { access: "private" }));
+      }
+
       photos.push({
         id: crypto.randomUUID(),
         type: "senior",

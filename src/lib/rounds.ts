@@ -5,7 +5,7 @@ export interface MentoringRound {
 }
 
 export const MENTORING_ROUNDS: MentoringRound[] = [
-  { label: "1차", start: "2026-07-13", end: "2026-07-16" },
+  { label: "1차", start: "2026-07-06", end: "2026-07-16" },
   { label: "2차", start: "2026-07-17", end: "2026-07-23" },
   { label: "3차", start: "2026-07-24", end: "2026-07-31" },
 ];

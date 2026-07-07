@@ -1,11 +1,18 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { MentoringSubmission, PhotoSubmission } from "@/types";
 import { downloadPdf } from "@/lib/download-pdf";
 import { useDraft } from "@/hooks/useDraft";
 import { todayLocalDate } from "@/lib/date";
 import { MENTORING_ROUNDS, getRoundIndex } from "@/lib/rounds";
+
+function firstOpenRound(submittedRoundIndices: Set<number>): number | null {
+  for (let i = 0; i < MENTORING_ROUNDS.length; i++) {
+    if (!submittedRoundIndices.has(i)) return i;
+  }
+  return null;
+}
 
 interface MentoringTabProps {
   internName: string;
@@ -36,9 +43,12 @@ export default function MentoringTab({ internName, onSubmit, onPhotoSubmit, subm
     () => new Set(submissions.map((s) => getRoundIndex(s.date)).filter((i) => i !== -1)),
     [submissions]
   );
-  const today = todayLocalDate();
-  const todayRoundIdx = getRoundIndex(today);
-  const isDuplicateRound = todayRoundIdx !== -1 && submittedRoundIndices.has(todayRoundIdx);
+  const [selectedRoundIdx, setSelectedRoundIdx] = useState<number | null>(() => firstOpenRound(submittedRoundIndices));
+  useEffect(() => {
+    setSelectedRoundIdx((prev) => (prev !== null && !submittedRoundIndices.has(prev) ? prev : firstOpenRound(submittedRoundIndices)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submissions]);
+  const canSubmit = selectedRoundIdx !== null && !submittedRoundIndices.has(selectedRoundIdx);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     saveForm({ ...form, [e.target.name]: e.target.value });
@@ -56,12 +66,12 @@ export default function MentoringTab({ internName, onSubmit, onPhotoSubmit, subm
       setPhotoError(true);
       return;
     }
-    if (isDuplicateRound) {
+    if (!canSubmit || selectedRoundIdx === null) {
       return;
     }
     setSubmitting(true);
     try {
-      await onSubmit({ ...form, internName, date: today, duration: "" }, selectedPhotos);
+      await onSubmit({ ...form, internName, date: MENTORING_ROUNDS[selectedRoundIdx].start, duration: "" }, selectedPhotos);
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 3000);
       clearDraft();
@@ -76,26 +86,32 @@ export default function MentoringTab({ internName, onSubmit, onPhotoSubmit, subm
     <div className="p-6 max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto">
       <div className="mb-6">
         <h2 className="text-xl font-bold text-gray-800">멘토링 활동일지 제출</h2>
-        <p className="text-sm text-gray-500 mt-1">멘토와의 활동 내용을 기록하고 제출해 주세요. 총 3회(1차~3차) 제출하며, 차수당 1건만 제출할 수 있습니다.</p>
+        <p className="text-sm text-gray-500 mt-1">멘토와의 활동 내용을 기록하고 제출해 주세요. 총 3회(1차~3차) 제출하며, 차수당 1건만 제출할 수 있습니다. 제출할 차수를 선택해 주세요.</p>
       </div>
 
       <div className="flex items-center gap-2 mb-6">
         {MENTORING_ROUNDS.map((r, i) => {
           const done = submittedRoundIndices.has(i);
+          const selected = selectedRoundIdx === i;
           return (
             <div key={r.label} className="flex items-center flex-1">
-              <div
-                className={`flex-1 rounded-xl border px-3 py-2 text-center ${
+              <button
+                type="button"
+                disabled={done}
+                onClick={() => setSelectedRoundIdx(i)}
+                className={`flex-1 rounded-xl border px-3 py-2 text-center transition-colors ${
                   done
-                    ? "bg-blue-600 border-blue-600 text-white"
-                    : "bg-white border-gray-200 text-gray-400"
+                    ? "bg-blue-600 border-blue-600 text-white cursor-default"
+                    : selected
+                    ? "bg-blue-50 border-blue-400 text-blue-700"
+                    : "bg-white border-gray-200 text-gray-400 hover:border-gray-300"
                 }`}
               >
                 <p className="text-sm font-semibold">{done ? "✓ " : ""}{r.label}</p>
-                <p className={`text-[10px] mt-0.5 ${done ? "text-blue-100" : "text-gray-400"}`}>
+                <p className={`text-[10px] mt-0.5 ${done ? "text-blue-100" : selected ? "text-blue-500" : "text-gray-400"}`}>
                   {r.start.slice(5).replace("-", "/")} ~ {r.end.slice(5).replace("-", "/")}
                 </p>
-              </div>
+              </button>
               {i < MENTORING_ROUNDS.length - 1 && <div className="w-2 shrink-0" />}
             </div>
           );
@@ -109,9 +125,9 @@ export default function MentoringTab({ internName, onSubmit, onPhotoSubmit, subm
       )}
 
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-5">
-        {isDuplicateRound && (
+        {selectedRoundIdx === null && (
           <p className="text-xs text-red-500">
-            이미 {MENTORING_ROUNDS[todayRoundIdx].label}에 제출한 활동일지가 있습니다. 차수당 1건만 제출할 수 있습니다.
+            모든 차수를 제출 완료했습니다. 더 이상 제출할 수 없습니다.
           </p>
         )}
         <div className="grid grid-cols-2 gap-4">
@@ -216,8 +232,8 @@ export default function MentoringTab({ internName, onSubmit, onPhotoSubmit, subm
               임시저장됨 · {draftSavedAt.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
             </p>
           )}
-          <button type="submit" disabled={submitting || isDuplicateRound} className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-3 rounded-xl transition-colors">
-            {submitting ? "제출 중..." : isDuplicateRound ? "이번 차수 제출 완료" : "활동일지 제출하기"}
+          <button type="submit" disabled={submitting || !canSubmit} className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-3 rounded-xl transition-colors">
+            {submitting ? "제출 중..." : !canSubmit ? "제출할 차수를 선택해 주세요" : `${MENTORING_ROUNDS[selectedRoundIdx!].label} 활동일지 제출하기`}
           </button>
         </div>
       </form>

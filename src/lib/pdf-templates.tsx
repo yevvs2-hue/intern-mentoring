@@ -162,6 +162,10 @@ export function SeniorPDF({ s, photos = [] }: { s: SeniorSubmission; photos?: Ph
             <Text style={base.infoValue}>{s.seniorName}</Text>
           </View>
           <View style={base.infoCard}>
+            <Text style={base.infoLabel}>선배 소속 부서</Text>
+            <Text style={base.infoValue}>{s.seniorDepartment}</Text>
+          </View>
+          <View style={base.infoCard}>
             <Text style={base.infoLabel}>소속 부서</Text>
             <Text style={base.infoValue}>{s.department}</Text>
           </View>
