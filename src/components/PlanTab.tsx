@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { PlanSubmission } from "@/types";
 import { useDraft } from "@/hooks/useDraft";
 import { downloadPdf } from "@/lib/download-pdf";
@@ -13,6 +13,13 @@ interface PlanTabProps {
 
 export default function PlanTab({ plan, internName, onSubmit }: PlanTabProps) {
   const [editing, setEditing] = useState(!plan);
+  const syncedInitialPlan = useRef(false);
+  useEffect(() => {
+    if (!syncedInitialPlan.current && plan) {
+      setEditing(false);
+      syncedInitialPlan.current = true;
+    }
+  }, [plan]);
   const { value: form, save: saveForm, clear: clearDraft, savedAt: draftSavedAt } = useDraft("draft_plan", {
     department: plan?.department ?? "",
     mentorName: plan?.mentorName ?? "",
@@ -20,6 +27,20 @@ export default function PlanTab({ plan, internName, onSubmit }: PlanTabProps) {
     seniorPlan: plan?.seniorPlan ?? "",
     goal: plan?.goal ?? "",
   });
+  const syncedInitialForm = useRef(false);
+  useEffect(() => {
+    if (!syncedInitialForm.current && plan) {
+      saveForm({
+        department: plan.department,
+        mentorName: plan.mentorName,
+        mentoringPlan: plan.mentoringPlan,
+        seniorPlan: plan.seniorPlan,
+        goal: plan.goal,
+      });
+      syncedInitialForm.current = true;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
