@@ -30,7 +30,7 @@ function writeLocalStore(data: SubmissionsStore): void {
 export async function readStore(): Promise<SubmissionsStore> {
   if (isLocal) return readLocalStore();
   try {
-    const result = await get(STORE_PATH, { access: "private" });
+    const result = await get(STORE_PATH, { access: "private", useCache: false });
     if (!result) return { ...INITIAL };
     return await new Response(result.stream).json() as SubmissionsStore;
   } catch {
@@ -62,7 +62,7 @@ async function acquireLock(): Promise<void> {
       return;
     } catch {
       try {
-        const existing = await get(LOCK_PATH, { access: "private" });
+        const existing = await get(LOCK_PATH, { access: "private", useCache: false });
         const lockedAt = existing ? Number(await new Response(existing.stream).text()) : NaN;
         if (!existing || Number.isNaN(lockedAt) || Date.now() - lockedAt > LOCK_TTL_MS) {
           await del(LOCK_PATH).catch(() => {});
