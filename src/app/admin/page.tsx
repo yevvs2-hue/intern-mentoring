@@ -144,25 +144,28 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+      <header className="bg-gray-900 px-4 sm:px-6 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-4">
-            <img src="/logo.png" alt="미래에셋증권" className="hidden sm:block h-7 object-contain" />
-            <div>
-              <h1 className="text-base sm:text-lg font-bold text-gray-900 leading-tight">2026 하반기 체험형 인턴</h1>
-              <p className="text-xs font-medium text-blue-900">멘토링 프로그램 · 관리자</p>
+            <img src="/logo.png" alt="미래에셋증권" className="hidden sm:block h-7 object-contain brightness-0 invert" />
+            <div className="flex items-center gap-2">
+              <div>
+                <h1 className="text-base sm:text-lg font-bold text-white leading-tight">2026 하반기 체험형 인턴</h1>
+                <p className="text-xs font-medium text-gray-400">멘토링 프로그램</p>
+              </div>
+              <span className="text-[10px] font-bold text-gray-900 bg-amber-400 rounded-full px-2 py-0.5 tracking-wide">관리자</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={fetchData}
-              className="text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors"
+              className="text-sm text-gray-300 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg px-3 py-1.5 transition-colors"
             >
               새로고침
             </button>
             <button
               onClick={handleLogout}
-              className="text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors"
+              className="text-sm text-gray-300 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg px-3 py-1.5 transition-colors"
             >
               로그아웃
             </button>
@@ -170,7 +173,7 @@ export default function AdminPage() {
         </div>
       </header>
 
-      <div className="border-b border-gray-200 bg-white sticky top-0 z-10">
+      <div className="border-b border-gray-800 bg-gray-900 sticky top-0 z-10">
         <nav className="max-w-4xl mx-auto flex overflow-x-auto px-6">
           {adminTabs.map((tab) => (
             <button
@@ -178,8 +181,8 @@ export default function AdminPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                 activeTab === tab.id
-                  ? "border-gray-800 text-gray-900"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  ? "border-amber-400 text-white"
+                  : "border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-600"
               }`}
             >
               <span>{tab.icon}</span>
@@ -195,7 +198,7 @@ export default function AdminPage() {
         ) : (
           <>
             {activeTab === "overview" && <OverviewTab data={data} />}
-            {activeTab === "interns" && <InternManagementTab interns={data.interns} onRefresh={fetchData} />}
+            {activeTab === "interns" && <InternManagementTab interns={data.interns} data={data} onRefresh={fetchData} />}
             {activeTab === "plan" && <PlanAdminTab plans={data.plan ?? []} />}
             {activeTab === "mentoring" && <MentoringAdminTab submissions={data.mentoring} photos={data.photos} onRefresh={fetchData} />}
             {activeTab === "senior" && <SeniorAdminTab submissions={data.senior} photos={data.photos} onRefresh={fetchData} />}
@@ -207,7 +210,7 @@ export default function AdminPage() {
   );
 }
 
-function InternManagementTab({ interns, onRefresh }: { interns: Intern[]; onRefresh: () => void }) {
+function InternManagementTab({ interns, data, onRefresh }: { interns: Intern[]; data: AllSubmissions; onRefresh: () => void }) {
   const [name, setName] = useState("");
   const [employeeId, setEmployeeId] = useState("");
   const [error, setError] = useState("");
@@ -398,6 +401,17 @@ function InternManagementTab({ interns, onRefresh }: { interns: Intern[]; onRefr
           </div>
         )}
       </div>
+
+      <div>
+        <h2 className="text-base font-semibold text-gray-700 mb-3">제출 캘린더</h2>
+        <CalendarTab
+          mentoringList={data.mentoring}
+          seniorList={data.senior}
+          manualList={data.manual}
+          planList={data.plan ?? []}
+          hideSummary
+        />
+      </div>
     </div>
   );
 }
@@ -481,18 +495,6 @@ function OverviewTab({ data }: { data: AllSubmissions }) {
           <div className="text-2xl font-bold text-green-700">{manualComplete}<span className="text-sm font-normal text-green-400">/{n}</span></div>
           <div className="text-xs text-green-600 mt-0.5">멘토링 리뷰 제출 (1회)</div>
         </div>
-      </div>
-
-      {/* 제출 캘린더 */}
-      <div>
-        <h2 className="text-base font-semibold text-gray-700 mb-3">제출 캘린더</h2>
-        <CalendarTab
-          mentoringList={data.mentoring}
-          seniorList={data.senior}
-          manualList={data.manual}
-          planList={data.plan ?? []}
-          hideSummary
-        />
       </div>
 
       {/* 주차별 현황 */}
