@@ -241,7 +241,7 @@ function InternManagementTab({ interns, data, onRefresh }: { interns: Intern[]; 
         const keys = Object.keys(row);
         const idKey = keys.find((k) => k.includes("사번")) ?? keys[0];
         const nameKey = keys.find((k) => k.includes("이름")) ?? keys[1];
-        const teamKey = keys.find((k) => k.includes("팀"));
+        const teamKey = keys.find((k) => k.includes("팀") || k.includes("소속") || k.toLowerCase().includes("team"));
         return {
           name: String(row[nameKey] ?? ""),
           employeeId: String(row[idKey] ?? ""),
@@ -354,7 +354,7 @@ function InternManagementTab({ interns, data, onRefresh }: { interns: Intern[]; 
             <span>📊</span>
             {xlsxLoading ? "업로드 중..." : "엑셀로 일괄 추가"}
           </label>
-          <span className="text-xs text-gray-400">1행: 사번 / 이름 / 팀명 헤더, 2행~: 데이터 (팀명은 선택)</span>
+          <span className="text-xs text-gray-400">1행: 사번 / 이름 / 팀명(또는 소속) 헤더, 2행~: 데이터 (팀명은 선택)</span>
         </div>
         <div className="border-t border-gray-100 pt-4">
           <p className="text-xs font-medium text-gray-500 mb-3">개별 추가</p>
