@@ -223,7 +223,7 @@ function InternManagementTab({ interns, data, onRefresh }: { interns: Intern[]; 
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [xlsxLoading, setXlsxLoading] = useState(false);
-  const [xlsxResult, setXlsxResult] = useState<{ added: number; skipped: number } | null>(null);
+  const [xlsxResult, setXlsxResult] = useState<{ added: number; updated: number; skipped: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -261,7 +261,7 @@ function InternManagementTab({ interns, data, onRefresh }: { interns: Intern[]; 
       });
       const json = await res.json();
       if (res.ok) {
-        setXlsxResult({ added: json.added, skipped: json.skipped });
+        setXlsxResult({ added: json.added, updated: json.updated ?? 0, skipped: json.skipped });
         onRefresh();
       } else {
         setError(json.error ?? "업로드에 실패했습니다.");
@@ -333,7 +333,9 @@ function InternManagementTab({ interns, data, onRefresh }: { interns: Intern[]; 
         )}
         {xlsxResult && (
           <div className="mb-3 bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-2.5 text-sm">
-            {xlsxResult.added}명 추가됨{xlsxResult.skipped > 0 ? ` · ${xlsxResult.skipped}명 중복/빈값 스킵` : ""}
+            {xlsxResult.added}명 추가됨
+            {xlsxResult.updated > 0 ? ` · ${xlsxResult.updated}명 정보 업데이트됨` : ""}
+            {xlsxResult.skipped > 0 ? ` · ${xlsxResult.skipped}명 빈값 스킵` : ""}
           </div>
         )}
         <div className="mb-4 flex items-center gap-3">

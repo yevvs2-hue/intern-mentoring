@@ -10,23 +10,32 @@ export async function POST(req: NextRequest) {
     if (rows.length === 0) {
       return NextResponse.json({ error: "데이터가 없습니다." }, { status: 400 });
     }
-    const { added, skipped } = await mutateStore((store) => {
-      const existingIds = new Set(store.interns.map((i) => i.employeeId));
+    const { added, updated, skipped } = await mutateStore((store) => {
+      const byId = new Map(store.interns.map((i) => [i.employeeId, i]));
       let added = 0;
+      let updated = 0;
       let skipped = 0;
       for (const row of rows) {
         const name = String(row.name ?? "").trim();
         const employeeId = String(row.employeeId ?? "").trim();
         const team = String(row.team ?? "").trim();
         if (!name || !employeeId) { skipped++; continue; }
-        if (existingIds.has(employeeId)) { skipped++; continue; }
-        store.interns.push({ name, employeeId, ...(team ? { team } : {}) });
-        existingIds.add(employeeId);
+        const existing = byId.get(employeeId);
+        if (existing) {
+          // 이미 등록된 사번이면 이름/팀명을 최신 값으로 갱신 (재업로드로 팀명만 추가하는 경우 지원)
+          existing.name = name;
+          if (team) existing.team = team;
+          updated++;
+          continue;
+        }
+        const intern = { name, employeeId, ...(team ? { team } : {}) };
+        store.interns.push(intern);
+        byId.set(employeeId, intern);
         added++;
       }
-      return { added, skipped };
+      return { added, updated, skipped };
     });
-    return NextResponse.json({ success: true, added, skipped });
+    return NextResponse.json({ success: true, added, updated, skipped });
   }
 
   // 단건 추가
