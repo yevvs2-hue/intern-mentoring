@@ -402,26 +402,33 @@ function InternManagementTab({ interns, data, onRefresh }: { interns: Intern[]; 
             등록된 인턴이 없습니다.
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-            {interns.map((intern, i) => (
-              <div key={intern.employeeId} className="flex items-center justify-between px-5 py-4">
-                <div>
-                  <span className="text-xs text-gray-400 mr-2 tabular-nums">{i + 1}</span>
-                  <span className="font-medium text-gray-800">{intern.name}</span>
-                  {intern.team && (
-                    <span className="text-xs bg-gray-100 text-gray-600 rounded-full px-2 py-0.5 ml-2">{intern.team}</span>
-                  )}
-                  <span className="text-xs text-gray-400 ml-2">사번: {intern.employeeId}</span>
-                </div>
-                <button
-                  onClick={() => handleDelete(intern.employeeId, intern.name)}
-                  disabled={deletingId === intern.employeeId}
-                  className="text-xs text-red-500 hover:text-red-700 border border-red-200 hover:border-red-300 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-40"
-                >
-                  {deletingId === intern.employeeId ? "삭제 중..." : "삭제"}
-                </button>
-              </div>
-            ))}
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="grid grid-cols-[2rem_1fr_1fr_1fr_auto] gap-4 px-5 py-2.5 border-b border-gray-100 text-xs font-medium text-gray-400">
+              <span>#</span>
+              <span>이름</span>
+              <span>팀명</span>
+              <span>사번</span>
+              <span></span>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {[...interns]
+                .sort((a, b) => a.name.localeCompare(b.name, "ko"))
+                .map((intern, i) => (
+                  <div key={intern.employeeId} className="grid grid-cols-[2rem_1fr_1fr_1fr_auto] gap-4 items-center px-5 py-3">
+                    <span className="text-xs text-gray-400 tabular-nums">{i + 1}</span>
+                    <span className="font-medium text-gray-800 truncate">{intern.name}</span>
+                    <span className="text-sm text-gray-500 truncate">{intern.team || "-"}</span>
+                    <span className="text-sm text-gray-500 tabular-nums truncate">{intern.employeeId}</span>
+                    <button
+                      onClick={() => handleDelete(intern.employeeId, intern.name)}
+                      disabled={deletingId === intern.employeeId}
+                      className="text-xs text-red-500 hover:text-red-700 border border-red-200 hover:border-red-300 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-40 whitespace-nowrap"
+                    >
+                      {deletingId === intern.employeeId ? "삭제 중..." : "삭제"}
+                    </button>
+                  </div>
+                ))}
+            </div>
           </div>
         )}
       </div>
