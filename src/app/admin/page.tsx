@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import Link from "next/link";
 import * as XLSX from "xlsx";
 import { downloadPdf } from "@/lib/download-pdf";
 import CalendarTab from "@/components/CalendarTab";
@@ -27,8 +28,11 @@ export default function AdminPage() {
   const [data, setData] = useState<AllSubmissions | null>(null);
   const [activeTab, setActiveTab] = useState<AdminTab>("overview");
 
+  // localStorage is unavailable during SSR/prerender, so admin auth is
+  // hydrated client-side after mount rather than via a lazy initializer.
   useEffect(() => {
     if (localStorage.getItem("adminAuth") === "true") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsAuthed(true);
     }
   }, []);
@@ -47,6 +51,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (isAuthed) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetch, not a derived-state copy
       fetchData();
     }
   }, [isAuthed, fetchData]);
@@ -125,7 +130,7 @@ export default function AdminPage() {
             </form>
 
             <div className="mt-4 text-center">
-              <a href="/" className="text-xs text-gray-400 hover:text-gray-600">← 인턴 로그인으로 돌아가기</a>
+              <Link href="/" className="text-xs text-gray-400 hover:text-gray-600">← 인턴 로그인으로 돌아가기</Link>
             </div>
           </div>
         </div>

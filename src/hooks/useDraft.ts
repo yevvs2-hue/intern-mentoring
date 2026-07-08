@@ -7,12 +7,16 @@ export function useDraft<T extends object>(key: string, initial: T) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadedRef = useRef(false);
 
+  // localStorage is unavailable during SSR/prerender, so the draft is hydrated
+  // client-side after mount rather than via a useState lazy initializer
+  // (which would otherwise crash on the server or cause a hydration mismatch).
   useEffect(() => {
     if (loadedRef.current) return;
     loadedRef.current = true;
     try {
       const raw = localStorage.getItem(key);
       if (raw) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setValue((prev) => ({ ...prev, ...JSON.parse(raw) }));
         setSavedAt(new Date());
       }

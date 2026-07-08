@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MentoringSubmission, SeniorSubmission, ManualSubmission, PlanSubmission } from "@/types";
 import { DEADLINES } from "@/lib/deadlines";
+import { getRoundIndex } from "@/lib/rounds";
 
 interface CalendarTabProps {
   mentoringList: MentoringSubmission[];
@@ -27,9 +28,13 @@ export default function CalendarTab({ mentoringList, seniorList, manualList, pla
   const manualDates = new Set(manualList.map((s) => s.submittedAt.slice(0, 10)));
   const planDates = new Set(planList.map((s) => s.submittedAt.slice(0, 10)));
 
-  const isDeadlineSubmitted = (color: string, dateStr: string) => {
-    if (color === "blue") return mentoringDates.has(dateStr);
-    if (color === "purple") return seniorDates.has(dateStr);
+  // 멘토링/탐구는 실제 제출일과 무관하게 해당 차수가 제출됐으면 마감일 체크리스트를 완료로 표시
+  const mentoringRounds = new Set(mentoringList.map((s) => getRoundIndex(s.date)).filter((i) => i !== -1));
+  const seniorRounds = new Set(seniorList.map((s) => getRoundIndex(s.date)).filter((i) => i !== -1));
+
+  const isDeadlineSubmitted = (color: string, dateStr: string, round?: number) => {
+    if (color === "blue") return round !== undefined ? mentoringRounds.has(round) : mentoringDates.has(dateStr);
+    if (color === "purple") return round !== undefined ? seniorRounds.has(round) : seniorDates.has(dateStr);
     if (color === "green") return manualDates.has(dateStr);
     if (color === "gray") return planDates.has(dateStr);
     return false;
@@ -116,7 +121,7 @@ export default function CalendarTab({ mentoringList, seniorList, manualList, pla
                 </span>
                 <div className="flex flex-col gap-0.5 w-full">
                   {deadlines.map((item, i) => {
-                    const submitted = isDeadlineSubmitted(item.color, dateStr);
+                    const submitted = isDeadlineSubmitted(item.color, dateStr, item.round);
                     const filledCls: Record<string, string> = {
                       blue: "bg-blue-500 text-white",
                       purple: "bg-purple-500 text-white",

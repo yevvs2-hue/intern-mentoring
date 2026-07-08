@@ -43,6 +43,8 @@ function DashboardInner() {
     }
   }, []);
 
+  // localStorage is unavailable during SSR/prerender, so the logged-in intern
+  // is hydrated client-side after mount rather than via a lazy initializer.
   useEffect(() => {
     const stored = localStorage.getItem("internUser");
     if (!stored) {
@@ -51,6 +53,7 @@ function DashboardInner() {
     }
     try {
       const parsed = JSON.parse(stored) as Intern;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIntern(parsed);
       fetchSubmissions(parsed.employeeId);
     } catch {

@@ -46,6 +46,8 @@ export default function SeniorTab({ internName, onSubmit, onPhotoSubmit, submiss
   );
   const [selectedRoundIdx, setSelectedRoundIdx] = useState<number | null>(() => firstOpenRound(submittedRoundIndices));
   useEffect(() => {
+    // re-sync only when the user's current pick becomes submitted elsewhere; manual picks are otherwise preserved
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedRoundIdx((prev) => (prev !== null && !submittedRoundIndices.has(prev) ? prev : firstOpenRound(submittedRoundIndices)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submissions]);
