@@ -4,9 +4,9 @@ import { mutateStore } from "@/lib/store";
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
-  // 엑셀 일괄 업로드: { interns: [{name, employeeId}] }
+  // 엑셀 일괄 업로드: { interns: [{name, employeeId, team}] }
   if (Array.isArray(body.interns)) {
-    const rows: { name: string; employeeId: string }[] = body.interns;
+    const rows: { name: string; employeeId: string; team?: string }[] = body.interns;
     if (rows.length === 0) {
       return NextResponse.json({ error: "데이터가 없습니다." }, { status: 400 });
     }
@@ -17,9 +17,10 @@ export async function POST(req: NextRequest) {
       for (const row of rows) {
         const name = String(row.name ?? "").trim();
         const employeeId = String(row.employeeId ?? "").trim();
+        const team = String(row.team ?? "").trim();
         if (!name || !employeeId) { skipped++; continue; }
         if (existingIds.has(employeeId)) { skipped++; continue; }
-        store.interns.push({ name, employeeId });
+        store.interns.push({ name, employeeId, ...(team ? { team } : {}) });
         existingIds.add(employeeId);
         added++;
       }
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 단건 추가
-  const { name, employeeId } = body;
+  const { name, employeeId, team } = body;
   if (!name || !employeeId) {
     return NextResponse.json({ error: "이름과 사번을 입력하세요." }, { status: 400 });
   }
@@ -38,7 +39,8 @@ export async function POST(req: NextRequest) {
     if (store.interns.some((i) => i.employeeId === employeeId)) {
       return true;
     }
-    store.interns.push({ name: name.trim(), employeeId: employeeId.trim() });
+    const trimmedTeam = String(team ?? "").trim();
+    store.interns.push({ name: name.trim(), employeeId: employeeId.trim(), ...(trimmedTeam ? { team: trimmedTeam } : {}) });
     return false;
   });
   if (duplicate) {

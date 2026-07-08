@@ -218,6 +218,7 @@ export default function AdminPage() {
 function InternManagementTab({ interns, data, onRefresh }: { interns: Intern[]; data: AllSubmissions; onRefresh: () => void }) {
   const [name, setName] = useState("");
   const [employeeId, setEmployeeId] = useState("");
+  const [team, setTeam] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -240,7 +241,12 @@ function InternManagementTab({ interns, data, onRefresh }: { interns: Intern[]; 
         const keys = Object.keys(row);
         const idKey = keys.find((k) => k.includes("사번")) ?? keys[0];
         const nameKey = keys.find((k) => k.includes("이름")) ?? keys[1];
-        return { name: String(row[nameKey] ?? ""), employeeId: String(row[idKey] ?? "") };
+        const teamKey = keys.find((k) => k.includes("팀"));
+        return {
+          name: String(row[nameKey] ?? ""),
+          employeeId: String(row[idKey] ?? ""),
+          team: teamKey ? String(row[teamKey] ?? "") : "",
+        };
       }).filter((r) => r.name && r.employeeId);
 
       if (interns.length === 0) {
@@ -276,12 +282,13 @@ function InternManagementTab({ interns, data, onRefresh }: { interns: Intern[]; 
       const res = await fetch("/api/admin/interns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, employeeId }),
+        body: JSON.stringify({ name, employeeId, team }),
       });
       const json = await res.json();
       if (res.ok) {
         setName("");
         setEmployeeId("");
+        setTeam("");
         onRefresh();
       } else {
         setError(json.error ?? "추가에 실패했습니다.");
@@ -345,7 +352,7 @@ function InternManagementTab({ interns, data, onRefresh }: { interns: Intern[]; 
             <span>📊</span>
             {xlsxLoading ? "업로드 중..." : "엑셀로 일괄 추가"}
           </label>
-          <span className="text-xs text-gray-400">1행: 사번 / 이름 헤더, 2행~: 데이터</span>
+          <span className="text-xs text-gray-400">1행: 사번 / 이름 / 팀명 헤더, 2행~: 데이터 (팀명은 선택)</span>
         </div>
         <div className="border-t border-gray-100 pt-4">
           <p className="text-xs font-medium text-gray-500 mb-3">개별 추가</p>
@@ -365,6 +372,13 @@ function InternManagementTab({ interns, data, onRefresh }: { interns: Intern[]; 
             value={employeeId}
             onChange={(e) => setEmployeeId(e.target.value)}
             required
+            className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+          />
+          <input
+            type="text"
+            placeholder="팀명 (선택)"
+            value={team}
+            onChange={(e) => setTeam(e.target.value)}
             className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
           />
           <button
@@ -392,6 +406,9 @@ function InternManagementTab({ interns, data, onRefresh }: { interns: Intern[]; 
                 <div>
                   <span className="text-xs text-gray-400 mr-2 tabular-nums">{i + 1}</span>
                   <span className="font-medium text-gray-800">{intern.name}</span>
+                  {intern.team && (
+                    <span className="text-xs bg-gray-100 text-gray-600 rounded-full px-2 py-0.5 ml-2">{intern.team}</span>
+                  )}
                   <span className="text-xs text-gray-400 ml-2">사번: {intern.employeeId}</span>
                 </div>
                 <button

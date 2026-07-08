@@ -50,6 +50,7 @@ export interface SubmissionRecord {
 export interface Intern {
   name: string;
   employeeId: string;
+  team?: string;
 }
 
 export interface PhotoSubmission {
