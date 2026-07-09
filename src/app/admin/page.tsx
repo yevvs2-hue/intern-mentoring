@@ -204,10 +204,10 @@ export default function AdminPage() {
           <>
             {activeTab === "overview" && <OverviewTab data={data} />}
             {activeTab === "interns" && <InternManagementTab interns={data.interns} data={data} onRefresh={fetchData} />}
-            {activeTab === "plan" && <PlanAdminTab plans={data.plan ?? []} />}
-            {activeTab === "mentoring" && <MentoringAdminTab submissions={data.mentoring} photos={data.photos} onRefresh={fetchData} />}
-            {activeTab === "senior" && <SeniorAdminTab submissions={data.senior} photos={data.photos} onRefresh={fetchData} />}
-            {activeTab === "manual" && <ManualAdminTab submissions={data.manual} />}
+            {activeTab === "plan" && <PlanAdminTab plans={data.plan ?? []} interns={data.interns} />}
+            {activeTab === "mentoring" && <MentoringAdminTab submissions={data.mentoring} photos={data.photos} interns={data.interns} onRefresh={fetchData} />}
+            {activeTab === "senior" && <SeniorAdminTab submissions={data.senior} photos={data.photos} interns={data.interns} onRefresh={fetchData} />}
+            {activeTab === "manual" && <ManualAdminTab submissions={data.manual} interns={data.interns} />}
           </>
         )}
       </main>
@@ -668,9 +668,59 @@ function WeeklySection({ data }: { data: AllSubmissions }) {
   );
 }
 
-function MentoringAdminTab({ submissions, photos, onRefresh }: { submissions: MentoringSubmission[]; photos: PhotoSubmission[]; onRefresh: () => void }) {
-  const [openId, setOpenId] = useState<string | null>(null);
+function MentoringItemDetail({ s, logPhotos, onDelete, deleting }: { s: MentoringSubmission; logPhotos: PhotoSubmission[]; onDelete: (id: string) => void; deleting: boolean }) {
+  return (
+    <div className="px-5 py-4">
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-xs text-gray-500">{s.department} · 멘토: {s.mentorName}{s.duration && ` · ${s.duration}`}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">{s.date}</span>
+          <button type="button" onClick={() => downloadPdf(`/api/pdf/mentoring/${s.id}`, `멘토링활동일지_${s.internName}_${s.date}.pdf`)} className="text-xs text-blue-600 hover:text-blue-700 border border-blue-200 rounded px-2 py-0.5">PDF</button>
+          <button
+            type="button"
+            onClick={() => onDelete(s.id)}
+            disabled={deleting}
+            className="text-xs text-red-500 hover:text-red-700 border border-red-200 rounded px-2 py-0.5 disabled:opacity-40"
+          >
+            {deleting ? "삭제 중..." : "삭제"}
+          </button>
+        </div>
+      </div>
+      <p className="text-sm text-gray-700 whitespace-pre-wrap">{s.content}</p>
+      {s.learned && (
+        <div className="mt-2">
+          <span className="text-xs font-medium text-gray-400">배운 점 / 느낀 점</span>
+          <p className="text-sm text-gray-600 mt-0.5 whitespace-pre-wrap">{s.learned}</p>
+        </div>
+      )}
+      {s.nextPlan && (
+        <div className="mt-2">
+          <span className="text-xs font-medium text-gray-400">다음 계획</span>
+          <p className="text-sm text-gray-600 mt-0.5 whitespace-pre-wrap">{s.nextPlan}</p>
+        </div>
+      )}
+      {logPhotos.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-gray-100">
+          <span className="text-xs font-medium text-gray-400 block mb-2">📸 활동 사진 ({logPhotos.length}장)</span>
+          <div className="grid grid-cols-3 gap-2">
+            {logPhotos.map((p) => (
+              <a key={p.id} href={`/api/photos/${p.id}`} target="_blank" rel="noopener noreferrer">
+                <img src={`/api/photos/${p.id}`} alt={p.caption} className="w-full h-24 object-cover rounded-lg hover:opacity-90 transition-opacity" />
+                {p.caption && <p className="text-[10px] text-gray-400 mt-0.5 truncate">{p.caption}</p>}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MentoringAdminTab({ submissions, photos, interns, onRefresh }: { submissions: MentoringSubmission[]; photos: PhotoSubmission[]; interns: Intern[]; onRefresh: () => void }) {
+  const [activeRound, setActiveRound] = useState(0);
+  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const myPhotos = photos.filter((p) => p.type === "mentoring");
 
   const handleDelete = async (id: string) => {
@@ -688,104 +738,112 @@ function MentoringAdminTab({ submissions, photos, onRefresh }: { submissions: Me
     }
   };
 
-  if (submissions.length === 0) {
-    return <EmptyState message="제출된 멘토링 활동일지가 없습니다." />;
+  if (interns.length === 0) {
+    return <EmptyState message="등록된 인턴이 없습니다." />;
   }
 
-  const grouped = groupByIntern(submissions);
+  const filteredInterns = filterByQuery(interns, query, (i) => i.name, (i) => i.employeeId);
+  const filteredIds = new Set(filteredInterns.map((i) => i.employeeId));
+  const filteredFlat = submissions.filter((s) => filteredIds.has(s.employeeId));
+  const roundGroups = groupByRound(filteredInterns, filteredFlat);
+  const currentRound = roundGroups.find((r) => r.roundIndex === activeRound) ?? roundGroups[0];
+  const allKeys = currentRound ? currentRound.groups.map((g) => `${currentRound.roundIndex}:${g.employeeId}`) : [];
+  const allOpen = allKeys.length > 0 && allKeys.every((k) => openIds.has(k));
+
+  const renderItem = (s: MentoringSubmission, employeeId: string) => {
+    const logPhotos = myPhotos.filter((p) => p.employeeId === employeeId && (p.submissionId ? p.submissionId === s.id : p.date === s.date));
+    return <MentoringItemDetail key={s.id} s={s} logPhotos={logPhotos} onDelete={handleDelete} deleting={deletingId === s.id} />;
+  };
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">총 {submissions.length}건 · {grouped.length}명</p>
-        {myPhotos.length > 0 && (
-          <a
-            href="/api/admin/download-photos?type=mentoring"
-            download
-            className="text-sm text-blue-600 hover:text-blue-700 border border-blue-200 rounded-lg px-3 py-1.5 flex items-center gap-1"
-          >
-            📸 사진 전체 다운로드 ({myPhotos.length}장)
-          </a>
-        )}
-      </div>
-      {grouped.map(({ employeeId, internName, items }) => {
-        const internPhotos = myPhotos.filter((p) => p.employeeId === employeeId);
-        return (
-        <div key={employeeId} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <RoundTabs rounds={roundGroups} active={activeRound} onChange={setActiveRound} />
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <p className="text-sm text-gray-500 whitespace-nowrap">총 {submissions.length}건 · {new Set(submissions.map((s) => s.employeeId)).size}/{interns.length}명</p>
+        <div className="flex items-center gap-2 flex-1 justify-end flex-wrap">
+          <SearchInput value={query} onChange={setQuery} placeholder="이름 또는 사번 검색" />
           <button
-            onClick={() => setOpenId(openId === employeeId ? null : employeeId)}
-            className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
+            type="button"
+            onClick={() => setOpenIds(allOpen ? new Set() : new Set(allKeys))}
+            className="text-sm text-gray-600 hover:text-gray-800 border border-gray-200 rounded-lg px-3 py-1.5 whitespace-nowrap"
           >
-            <div className="flex items-center gap-3">
-              <span className="font-semibold text-gray-800">{internName}</span>
-              <span className="text-xs text-gray-400">사번: {employeeId}</span>
-              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{items.length}건</span>
-              {internPhotos.length > 0 && <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">📸 {internPhotos.length}장</span>}
-            </div>
-            <span className="text-gray-400 text-xs">{openId === employeeId ? "▲" : "▼"}</span>
+            {allOpen ? "전체 접기" : "전체 펼치기"}
           </button>
-          {openId === employeeId && (
-            <div className="border-t border-gray-100 divide-y divide-gray-50">
-              {items.map((s) => {
-                const logPhotos = internPhotos.filter((p) => p.submissionId ? p.submissionId === s.id : p.date === s.date);
-                return (
-                <div key={s.id} className="px-5 py-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs text-gray-500">{s.department} · 멘토: {s.mentorName}{s.duration && ` · ${s.duration}`}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400">{s.date}</span>
-                      <button type="button" onClick={() => downloadPdf(`/api/pdf/mentoring/${s.id}`, `멘토링활동일지_${s.internName}_${s.date}.pdf`)} className="text-xs text-blue-600 hover:text-blue-700 border border-blue-200 rounded px-2 py-0.5">PDF</button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(s.id)}
-                        disabled={deletingId === s.id}
-                        className="text-xs text-red-500 hover:text-red-700 border border-red-200 rounded px-2 py-0.5 disabled:opacity-40"
-                      >
-                        {deletingId === s.id ? "삭제 중..." : "삭제"}
-                      </button>
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{s.content}</p>
-                  {s.learned && (
-                    <div className="mt-2">
-                      <span className="text-xs font-medium text-gray-400">배운 점 / 느낀 점</span>
-                      <p className="text-sm text-gray-600 mt-0.5 whitespace-pre-wrap">{s.learned}</p>
-                    </div>
-                  )}
-                  {s.nextPlan && (
-                    <div className="mt-2">
-                      <span className="text-xs font-medium text-gray-400">다음 계획</span>
-                      <p className="text-sm text-gray-600 mt-0.5 whitespace-pre-wrap">{s.nextPlan}</p>
-                    </div>
-                  )}
-                  {logPhotos.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      <span className="text-xs font-medium text-gray-400 block mb-2">📸 활동 사진 ({logPhotos.length}장)</span>
-                      <div className="grid grid-cols-3 gap-2">
-                        {logPhotos.map((p) => (
-                          <a key={p.id} href={`/api/photos/${p.id}`} target="_blank" rel="noopener noreferrer">
-                            <img src={`/api/photos/${p.id}`} alt={p.caption} className="w-full h-24 object-cover rounded-lg hover:opacity-90 transition-opacity" />
-                            {p.caption && <p className="text-[10px] text-gray-400 mt-0.5 truncate">{p.caption}</p>}
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                );
-              })}
-            </div>
+          {submissions.length > 0 && (
+            <a
+              href="/api/admin/download-pdfs?type=mentoring"
+              download
+              className="text-sm text-blue-600 hover:text-blue-700 border border-blue-200 rounded-lg px-3 py-1.5 flex items-center gap-1 whitespace-nowrap"
+            >
+              📄 PDF 전체 다운로드 ({submissions.length}건)
+            </a>
           )}
         </div>
-        );
-      })}
+      </div>
+      {filteredInterns.length === 0 && <EmptyState message="검색 결과가 없습니다." />}
+
+      {filteredInterns.length > 0 && currentRound && (
+        <RosterTable
+          groups={currentRound.groups}
+          openIds={openIds}
+          onToggle={(key) => setOpenIds(toggleSet(openIds, key))}
+          getKey={(employeeId) => `${currentRound.roundIndex}:${employeeId}`}
+          accent="blue"
+          renderItem={renderItem}
+        />
+      )}
     </div>
   );
 }
 
-function SeniorAdminTab({ submissions, photos, onRefresh }: { submissions: SeniorSubmission[]; photos: PhotoSubmission[]; onRefresh: () => void }) {
-  const [openId, setOpenId] = useState<string | null>(null);
+function SeniorItemDetail({ s, logPhotos, onDelete, deleting }: { s: SeniorSubmission; logPhotos: PhotoSubmission[]; onDelete: (id: string) => void; deleting: boolean }) {
+  return (
+    <div className="px-5 py-4">
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-sm font-medium text-purple-600">{s.topic}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">{s.date}</span>
+          <button type="button" onClick={() => downloadPdf(`/api/pdf/senior/${s.id}`, `선배탐구생활_${s.internName}_${s.date}.pdf`)} className="text-xs text-purple-600 hover:text-purple-700 border border-purple-200 rounded px-2 py-0.5">PDF</button>
+          <button
+            type="button"
+            onClick={() => onDelete(s.id)}
+            disabled={deleting}
+            className="text-xs text-red-500 hover:text-red-700 border border-red-200 rounded px-2 py-0.5 disabled:opacity-40"
+          >
+            {deleting ? "삭제 중..." : "삭제"}
+          </button>
+        </div>
+      </div>
+      <p className="text-xs text-gray-500 mb-2">{s.department} · 선배: {s.seniorName} ({s.seniorDepartment})</p>
+      <p className="text-sm text-gray-700 whitespace-pre-wrap">{s.content}</p>
+      {s.insights && (
+        <div className="mt-2">
+          <span className="text-xs font-medium text-gray-400">인사이트 / 느낀 점</span>
+          <p className="text-sm text-gray-600 mt-0.5 whitespace-pre-wrap">{s.insights}</p>
+        </div>
+      )}
+      {logPhotos.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-gray-100">
+          <span className="text-xs font-medium text-gray-400 block mb-2">📷 활동 사진 ({logPhotos.length}장)</span>
+          <div className="grid grid-cols-3 gap-2">
+            {logPhotos.map((p) => (
+              <a key={p.id} href={`/api/photos/${p.id}`} target="_blank" rel="noopener noreferrer">
+                <img src={`/api/photos/${p.id}`} alt={p.caption} className="w-full h-24 object-cover rounded-lg hover:opacity-90 transition-opacity" />
+                {p.caption && <p className="text-[10px] text-gray-400 mt-0.5 truncate">{p.caption}</p>}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SeniorAdminTab({ submissions, photos, interns, onRefresh }: { submissions: SeniorSubmission[]; photos: PhotoSubmission[]; interns: Intern[]; onRefresh: () => void }) {
+  const [activeRound, setActiveRound] = useState(0);
+  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const myPhotos = photos.filter((p) => p.type === "senior");
 
   const handleDelete = async (id: string) => {
@@ -803,174 +861,175 @@ function SeniorAdminTab({ submissions, photos, onRefresh }: { submissions: Senio
     }
   };
 
-  if (submissions.length === 0) {
-    return <EmptyState message="제출된 선배탐구 일지가 없습니다." />;
+  if (interns.length === 0) {
+    return <EmptyState message="등록된 인턴이 없습니다." />;
   }
 
-  const grouped = groupByIntern(submissions);
+  const filteredInterns = filterByQuery(interns, query, (i) => i.name, (i) => i.employeeId);
+  const filteredIds = new Set(filteredInterns.map((i) => i.employeeId));
+  const filteredFlat = submissions.filter((s) => filteredIds.has(s.employeeId));
+  const roundGroups = groupByRound(filteredInterns, filteredFlat);
+  const currentRound = roundGroups.find((r) => r.roundIndex === activeRound) ?? roundGroups[0];
+  const allKeys = currentRound ? currentRound.groups.map((g) => `${currentRound.roundIndex}:${g.employeeId}`) : [];
+  const allOpen = allKeys.length > 0 && allKeys.every((k) => openIds.has(k));
+
+  const renderItem = (s: SeniorSubmission, employeeId: string) => {
+    const logPhotos = myPhotos.filter((p) => p.employeeId === employeeId && (p.submissionId ? p.submissionId === s.id : p.date === s.date));
+    return <SeniorItemDetail key={s.id} s={s} logPhotos={logPhotos} onDelete={handleDelete} deleting={deletingId === s.id} />;
+  };
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">총 {submissions.length}건 · {grouped.length}명</p>
-        {myPhotos.length > 0 && (
-          <a
-            href="/api/admin/download-photos?type=senior"
-            download
-            className="text-sm text-purple-600 hover:text-purple-700 border border-purple-200 rounded-lg px-3 py-1.5 flex items-center gap-1"
-          >
-            📷 사진 전체 다운로드 ({myPhotos.length}장)
-          </a>
-        )}
-      </div>
-      {grouped.map(({ employeeId, internName, items }) => {
-        const internPhotos = myPhotos.filter((p) => p.employeeId === employeeId);
-        return (
-        <div key={employeeId} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <RoundTabs rounds={roundGroups} active={activeRound} onChange={setActiveRound} />
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <p className="text-sm text-gray-500 whitespace-nowrap">총 {submissions.length}건 · {new Set(submissions.map((s) => s.employeeId)).size}/{interns.length}명</p>
+        <div className="flex items-center gap-2 flex-1 justify-end flex-wrap">
+          <SearchInput value={query} onChange={setQuery} placeholder="이름 또는 사번 검색" />
           <button
-            onClick={() => setOpenId(openId === employeeId ? null : employeeId)}
-            className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
+            type="button"
+            onClick={() => setOpenIds(allOpen ? new Set() : new Set(allKeys))}
+            className="text-sm text-gray-600 hover:text-gray-800 border border-gray-200 rounded-lg px-3 py-1.5 whitespace-nowrap"
           >
-            <div className="flex items-center gap-3">
-              <span className="font-semibold text-gray-800">{internName}</span>
-              <span className="text-xs text-gray-400">사번: {employeeId}</span>
-              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">{items.length}건</span>
-              {internPhotos.length > 0 && <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">📷 {internPhotos.length}장</span>}
-            </div>
-            <span className="text-gray-400 text-xs">{openId === employeeId ? "▲" : "▼"}</span>
+            {allOpen ? "전체 접기" : "전체 펼치기"}
           </button>
-          {openId === employeeId && (
-            <div className="border-t border-gray-100 divide-y divide-gray-50">
-              {items.map((s) => {
-                const logPhotos = internPhotos.filter((p) => p.submissionId ? p.submissionId === s.id : p.date === s.date);
-                return (
-                <div key={s.id} className="px-5 py-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-purple-600">{s.topic}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400">{s.date}</span>
-                      <button type="button" onClick={() => downloadPdf(`/api/pdf/senior/${s.id}`, `선배탐구생활_${s.internName}_${s.date}.pdf`)} className="text-xs text-purple-600 hover:text-purple-700 border border-purple-200 rounded px-2 py-0.5">PDF</button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(s.id)}
-                        disabled={deletingId === s.id}
-                        className="text-xs text-red-500 hover:text-red-700 border border-red-200 rounded px-2 py-0.5 disabled:opacity-40"
-                      >
-                        {deletingId === s.id ? "삭제 중..." : "삭제"}
-                      </button>
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-500 mb-2">{s.department} · 선배: {s.seniorName} ({s.seniorDepartment})</p>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{s.content}</p>
-                  {s.insights && (
-                    <div className="mt-2">
-                      <span className="text-xs font-medium text-gray-400">인사이트 / 느낀 점</span>
-                      <p className="text-sm text-gray-600 mt-0.5 whitespace-pre-wrap">{s.insights}</p>
-                    </div>
-                  )}
-                  {logPhotos.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      <span className="text-xs font-medium text-gray-400 block mb-2">📷 활동 사진 ({logPhotos.length}장)</span>
-                      <div className="grid grid-cols-3 gap-2">
-                        {logPhotos.map((p) => (
-                          <a key={p.id} href={`/api/photos/${p.id}`} target="_blank" rel="noopener noreferrer">
-                            <img src={`/api/photos/${p.id}`} alt={p.caption} className="w-full h-24 object-cover rounded-lg hover:opacity-90 transition-opacity" />
-                            {p.caption && <p className="text-[10px] text-gray-400 mt-0.5 truncate">{p.caption}</p>}
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                );
-              })}
-            </div>
+          {submissions.length > 0 && (
+            <a
+              href="/api/admin/download-pdfs?type=senior"
+              download
+              className="text-sm text-purple-600 hover:text-purple-700 border border-purple-200 rounded-lg px-3 py-1.5 flex items-center gap-1 whitespace-nowrap"
+            >
+              📄 PDF 전체 다운로드 ({submissions.length}건)
+            </a>
           )}
         </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function PlanAdminTab({ plans }: { plans: PlanSubmission[] }) {
-  if (plans.length === 0) {
-    return <EmptyState message="제출된 계획서가 없습니다." />;
-  }
-  return (
-    <div className="space-y-3">
-      <p className="text-sm text-gray-500">{plans.length}명 제출</p>
-      {plans.map((p) => (
-        <div key={p.id} className="bg-white rounded-xl border border-gray-200 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <span className="font-semibold text-gray-800">{p.internName}</span>
-              <span className="text-xs text-gray-400 ml-2">사번: {p.employeeId}</span>
-              <span className="text-xs text-gray-400 ml-2">{p.department}</span>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-gray-400">멘토: {p.mentorName}</p>
-              <p className="text-xs text-gray-400 mb-1">{new Date(p.submittedAt).toLocaleDateString("ko-KR")}</p>
-              <button type="button" onClick={() => downloadPdf(`/api/pdf/plan/${p.id}`, `멘토링계획서_${p.internName}.pdf`)} className="text-xs text-gray-600 hover:text-gray-700 border border-gray-300 rounded px-2 py-0.5">PDF</button>
-            </div>
-          </div>
-          <div className="space-y-3">
-            <div>
-              <p className="text-xs font-medium text-gray-400 mb-1">멘토링 계획</p>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">{p.mentoringPlan}</p>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-gray-400 mb-1">선배 탐구생활 계획</p>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">{p.seniorPlan}</p>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-gray-400 mb-1">인턴 기간 목표</p>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">{p.goal}</p>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ManualAdminTab({ submissions }: { submissions: ManualSubmission[] }) {
-  if (submissions.length === 0) {
-    return <EmptyState message="제출된 팀 사용 설명서가 없습니다." />;
-  }
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">총 {submissions.length}건</p>
-        <button
-          type="button"
-          onClick={() => downloadPdf("/api/admin/download-manuals", "멘토링 리뷰_전체.zip")}
-          className="text-sm text-green-600 hover:text-green-700 border border-green-200 rounded-lg px-3 py-1.5 flex items-center gap-1"
-        >
-          📥 전체 다운로드 ({submissions.length}건)
-        </button>
       </div>
-      {submissions.slice().reverse().map((s) => (
-        <div key={s.id} className="bg-white rounded-xl border border-gray-200 p-5">
-          <div className="flex justify-between items-start mb-3">
-            <div>
-              <span className="font-semibold text-gray-800">{s.internName}</span>
-              <span className="text-xs text-gray-400 ml-2">사번: {s.employeeId}</span>
-              <span className="text-xs text-gray-400 ml-2">{s.department}</span>
+      {filteredInterns.length === 0 && <EmptyState message="검색 결과가 없습니다." />}
+
+      {filteredInterns.length > 0 && currentRound && (
+        <RosterTable
+          groups={currentRound.groups}
+          openIds={openIds}
+          onToggle={(key) => setOpenIds(toggleSet(openIds, key))}
+          getKey={(employeeId) => `${currentRound.roundIndex}:${employeeId}`}
+          accent="purple"
+          renderItem={renderItem}
+        />
+      )}
+    </div>
+  );
+}
+
+function PlanAdminTab({ plans, interns }: { plans: PlanSubmission[]; interns: Intern[] }) {
+  const [query, setQuery] = useState("");
+  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
+
+  if (interns.length === 0) {
+    return <EmptyState message="등록된 인턴이 없습니다." />;
+  }
+
+  const filteredInterns = filterByQuery(interns, query, (i) => i.name, (i) => i.employeeId);
+  const filteredIds = new Set(filteredInterns.map((i) => i.employeeId));
+  const filteredPlans = plans.filter((p) => filteredIds.has(p.employeeId));
+  const grouped = buildRosterGroups(filteredInterns, filteredPlans);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <p className="text-sm text-gray-500 whitespace-nowrap">{plans.length}/{interns.length}명 제출</p>
+        <SearchInput value={query} onChange={setQuery} placeholder="이름 또는 사번 검색" />
+      </div>
+      {filteredInterns.length === 0 ? (
+        <EmptyState message="검색 결과가 없습니다." />
+      ) : (
+        <RosterTable
+          groups={grouped}
+          openIds={openIds}
+          onToggle={(key) => setOpenIds(toggleSet(openIds, key))}
+          accent="green"
+          renderItem={(p: PlanSubmission) => (
+            <div key={p.id} className="px-5 py-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs text-gray-400">{p.department} · 멘토: {p.mentorName} · {new Date(p.submittedAt).toLocaleDateString("ko-KR")}</span>
+                <button type="button" onClick={() => downloadPdf(`/api/pdf/plan/${p.id}`, `멘토링계획서_${p.internName}.pdf`)} className="text-xs text-gray-600 hover:text-gray-700 border border-gray-300 rounded px-2 py-0.5">PDF</button>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs font-medium text-gray-400 mb-1">멘토링 계획</p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{p.mentoringPlan}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-400 mb-1">선배 탐구생활 계획</p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{p.seniorPlan}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-400 mb-1">인턴 기간 목표</p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{p.goal}</p>
+                </div>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => s.fileUrl && downloadPdf(`/api/manuals/${s.id}`, s.fileName)}
-              disabled={!s.fileUrl}
-              className="text-xs text-green-600 hover:text-green-700 border border-green-200 rounded-lg px-3 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              다운로드
-            </button>
-          </div>
-          {s.description && <p className="text-sm text-gray-600 mt-1">{s.description}</p>}
-          <p className="text-xs text-gray-400 mt-2">{s.fileName} · {(s.fileSize / 1024 / 1024).toFixed(1)}MB</p>
+          )}
+        />
+      )}
+    </div>
+  );
+}
+
+function ManualAdminTab({ submissions, interns }: { submissions: ManualSubmission[]; interns: Intern[] }) {
+  const [query, setQuery] = useState("");
+  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
+
+  if (interns.length === 0) {
+    return <EmptyState message="등록된 인턴이 없습니다." />;
+  }
+
+  const filteredInterns = filterByQuery(interns, query, (i) => i.name, (i) => i.employeeId);
+  const filteredIds = new Set(filteredInterns.map((i) => i.employeeId));
+  const filteredSubmissions = submissions.filter((s) => filteredIds.has(s.employeeId));
+  const grouped = buildRosterGroups(filteredInterns, filteredSubmissions);
+  const submittedCount = new Set(submissions.map((s) => s.employeeId)).size;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <p className="text-sm text-gray-500 whitespace-nowrap">총 {submissions.length}건 · {submittedCount}/{interns.length}명</p>
+        <div className="flex items-center gap-2 flex-1 justify-end flex-wrap">
+          <SearchInput value={query} onChange={setQuery} placeholder="이름 또는 사번 검색" />
+          <button
+            type="button"
+            onClick={() => downloadPdf("/api/admin/download-manuals", "멘토링 리뷰_전체.zip")}
+            className="text-sm text-green-600 hover:text-green-700 border border-green-200 rounded-lg px-3 py-1.5 flex items-center gap-1 whitespace-nowrap"
+          >
+            📥 전체 다운로드 ({submissions.length}건)
+          </button>
         </div>
-      ))}
+      </div>
+      {filteredInterns.length === 0 ? (
+        <EmptyState message="검색 결과가 없습니다." />
+      ) : (
+        <RosterTable
+          groups={grouped}
+          openIds={openIds}
+          onToggle={(key) => setOpenIds(toggleSet(openIds, key))}
+          accent="green"
+          renderItem={(s: ManualSubmission) => (
+            <div key={s.id} className="px-5 py-4">
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-xs text-gray-400">{s.department}</span>
+                <button
+                  type="button"
+                  onClick={() => s.fileUrl && downloadPdf(`/api/manuals/${s.id}`, s.fileName)}
+                  disabled={!s.fileUrl}
+                  className="text-xs text-green-600 hover:text-green-700 border border-green-200 rounded-lg px-3 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  다운로드
+                </button>
+              </div>
+              {s.description && <p className="text-sm text-gray-600 mt-1">{s.description}</p>}
+              <p className="text-xs text-gray-400 mt-2">{s.fileName} · {(s.fileSize / 1024 / 1024).toFixed(1)}MB</p>
+            </div>
+          )}
+        />
+      )}
     </div>
   );
 }
@@ -984,6 +1043,36 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function SearchInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 w-48"
+    />
+  );
+}
+
+function filterByQuery<T>(
+  items: T[],
+  query: string,
+  getName: (item: T) => string = (item) => (item as { internName: string }).internName,
+  getId: (item: T) => string = (item) => (item as { employeeId: string }).employeeId
+): T[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return items;
+  return items.filter((item) => getName(item).toLowerCase().includes(q) || getId(item).toLowerCase().includes(q));
+}
+
+function toggleSet(set: Set<string>, id: string): Set<string> {
+  const next = new Set(set);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  return next;
+}
+
 function groupByIntern<T extends { employeeId: string; internName: string }>(items: T[]) {
   const map = new Map<string, { employeeId: string; internName: string; items: T[] }>();
   for (const item of items) {
@@ -993,6 +1082,137 @@ function groupByIntern<T extends { employeeId: string; internName: string }>(ite
     map.get(item.employeeId)!.items.push(item);
   }
   return Array.from(map.values());
+}
+
+function buildRosterGroups<T extends { employeeId: string; internName: string }>(interns: Intern[], items: T[]) {
+  const map = new Map<string, T[]>();
+  for (const item of items) {
+    if (!map.has(item.employeeId)) map.set(item.employeeId, []);
+    map.get(item.employeeId)!.push(item);
+  }
+  return [...interns]
+    .sort((a, b) => a.name.localeCompare(b.name, "ko"))
+    .map((intern) => ({ employeeId: intern.employeeId, internName: intern.name, items: map.get(intern.employeeId) ?? [] }));
+}
+
+function RoundTabs({ rounds, active, onChange }: { rounds: { roundIndex: number; label: string; items: unknown[] }[]; active: number; onChange: (roundIndex: number) => void }) {
+  return (
+    <div className="flex gap-2 flex-wrap">
+      {rounds.map((r) => (
+        <button
+          key={r.roundIndex}
+          type="button"
+          onClick={() => onChange(r.roundIndex)}
+          className={`flex-1 min-w-[110px] rounded-xl border px-4 py-3 text-center transition-colors ${
+            active === r.roundIndex
+              ? "border-gray-800 bg-gray-800 text-white"
+              : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+          }`}
+        >
+          <div className="font-semibold">{r.label}</div>
+          <div className={`text-xs mt-0.5 ${active === r.roundIndex ? "text-gray-300" : "text-gray-400"}`}>{r.items.length}건 제출</div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function RosterTable<T>({
+  groups,
+  openIds,
+  onToggle,
+  getKey = (employeeId: string) => employeeId,
+  accent,
+  photoCount,
+  photoIcon,
+  renderItem,
+}: {
+  groups: { employeeId: string; internName: string; items: T[] }[];
+  openIds: Set<string>;
+  onToggle: (key: string) => void;
+  getKey?: (employeeId: string) => string;
+  accent: "blue" | "purple" | "green";
+  photoCount?: (employeeId: string) => number;
+  photoIcon?: string;
+  renderItem: (item: T, employeeId: string) => React.ReactNode;
+}) {
+  const badgeClass = {
+    blue: "bg-blue-100 text-blue-700",
+    purple: "bg-purple-100 text-purple-700",
+    green: "bg-green-100 text-green-700",
+  }[accent];
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="grid grid-cols-[2rem_1fr_1fr_auto] gap-4 px-5 py-2.5 border-b border-gray-100 text-xs font-medium text-gray-400">
+        <span>#</span>
+        <span>이름</span>
+        <span>사번</span>
+        <span className="text-right">건수</span>
+      </div>
+      <div className="divide-y divide-gray-100">
+        {groups.map(({ employeeId, internName, items }, i) => {
+          const key = getKey(employeeId);
+          const open = openIds.has(key);
+          const photos = photoCount?.(employeeId) ?? 0;
+          return (
+            <div key={key}>
+              <button
+                type="button"
+                onClick={() => onToggle(key)}
+                className="w-full grid grid-cols-[2rem_1fr_1fr_auto] gap-4 items-center px-5 py-3 hover:bg-gray-50 transition-colors text-left"
+              >
+                <span className="text-xs text-gray-400 tabular-nums">{i + 1}</span>
+                <span className="font-medium text-gray-800 truncate">{internName}</span>
+                <span className="text-sm text-gray-500 tabular-nums truncate">{employeeId}</span>
+                <span className="flex items-center gap-2 justify-end whitespace-nowrap">
+                  {items.length > 0 ? (
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${badgeClass}`}>{items.length}건</span>
+                  ) : (
+                    <span className="text-xs text-gray-300">미제출</span>
+                  )}
+                  {photos > 0 && <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{photoIcon} {photos}장</span>}
+                  <span className="text-gray-400 text-xs">{open ? "▲" : "▼"}</span>
+                </span>
+              </button>
+              {open && (
+                <div className="border-t border-gray-100 divide-y divide-gray-50 bg-gray-50/40">
+                  {items.length > 0 ? (
+                    items.map((item) => renderItem(item, employeeId))
+                  ) : (
+                    <p className="px-5 py-4 text-sm text-gray-400">제출된 내역이 없습니다.</p>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function groupByRound<T extends { employeeId: string; internName: string; date: string }>(interns: Intern[], items: T[]) {
+  const buckets = new Map<number, T[]>();
+  for (const item of items) {
+    const idx = getRoundIndex(item.date);
+    if (!buckets.has(idx)) buckets.set(idx, []);
+    buckets.get(idx)!.push(item);
+  }
+  const order = [...MENTORING_ROUNDS.map((_, i) => i), -1];
+  return order
+    .filter((idx) => idx !== -1 || buckets.has(idx))
+    .map((idx) => {
+      const bucketItems = buckets.get(idx) ?? [];
+      return {
+        roundIndex: idx,
+        label: idx === -1 ? "기타 (회차 범위 외)" : MENTORING_ROUNDS[idx].label,
+        items: bucketItems,
+        // -1 (기타) only ever occurs for out-of-range dates, which are rare exceptions —
+        // show just those submitters rather than the full roster to avoid a wall of "미제출".
+        groups: idx === -1 ? groupByIntern(bucketItems).sort((a, b) => a.internName.localeCompare(b.internName, "ko")) : buildRosterGroups(interns, bucketItems),
+      };
+    });
 }
 
 function getMonday(dateStr: string): string {
