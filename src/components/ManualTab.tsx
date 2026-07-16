@@ -49,9 +49,12 @@ export default function ManualTab({ onSubmit, onSubmitMeta, submissions, onDelet
 
   const handleDelete = async (id: string) => {
     if (!confirm("이 제출 건을 삭제하시겠습니까?")) return;
+    setError("");
     setDeletingId(id);
     try {
       await onDelete(id);
+    } catch {
+      setError("삭제 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
     } finally {
       setDeletingId(null);
     }

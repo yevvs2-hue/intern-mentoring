@@ -721,18 +721,23 @@ function MentoringAdminTab({ submissions, photos, interns, onRefresh }: { submis
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [error, setError] = useState("");
   const myPhotos = photos.filter((p) => p.type === "mentoring");
 
   const handleDelete = async (id: string) => {
     if (!confirm("이 제출 건을 삭제하시겠습니까?")) return;
+    setError("");
     setDeletingId(id);
     try {
-      await fetch("/api/admin/submissions", {
+      const res = await fetch("/api/admin/submissions", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, type: "mentoring" }),
       });
+      if (!res.ok) throw new Error("삭제에 실패했습니다.");
       onRefresh();
+    } catch {
+      setError("삭제 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
     } finally {
       setDeletingId(null);
     }
@@ -757,6 +762,11 @@ function MentoringAdminTab({ submissions, photos, interns, onRefresh }: { submis
 
   return (
     <div className="space-y-3">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+          {error}
+        </div>
+      )}
       <RoundTabs rounds={roundGroups} active={activeRound} onChange={setActiveRound} />
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <p className="text-sm text-gray-500 whitespace-nowrap">총 {submissions.length}건 · {new Set(submissions.map((s) => s.employeeId)).size}/{interns.length}명</p>
@@ -844,18 +854,23 @@ function SeniorAdminTab({ submissions, photos, interns, onRefresh }: { submissio
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [error, setError] = useState("");
   const myPhotos = photos.filter((p) => p.type === "senior");
 
   const handleDelete = async (id: string) => {
     if (!confirm("이 제출 건을 삭제하시겠습니까?")) return;
+    setError("");
     setDeletingId(id);
     try {
-      await fetch("/api/admin/submissions", {
+      const res = await fetch("/api/admin/submissions", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, type: "senior" }),
       });
+      if (!res.ok) throw new Error("삭제에 실패했습니다.");
       onRefresh();
+    } catch {
+      setError("삭제 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
     } finally {
       setDeletingId(null);
     }
@@ -880,6 +895,11 @@ function SeniorAdminTab({ submissions, photos, interns, onRefresh }: { submissio
 
   return (
     <div className="space-y-3">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+          {error}
+        </div>
+      )}
       <RoundTabs rounds={roundGroups} active={activeRound} onChange={setActiveRound} />
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <p className="text-sm text-gray-500 whitespace-nowrap">총 {submissions.length}건 · {new Set(submissions.map((s) => s.employeeId)).size}/{interns.length}명</p>

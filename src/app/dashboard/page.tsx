@@ -130,41 +130,45 @@ function DashboardInner() {
 
   const handleMentoringDelete = async (id: string) => {
     if (!intern) return;
-    await fetch("/api/submissions/mentoring", {
+    const res = await fetch("/api/submissions/mentoring", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, employeeId: intern.employeeId }),
     });
+    if (!res.ok) throw new Error("멘토링 활동일지 삭제에 실패했습니다.");
     await fetchSubmissions(intern.employeeId);
   };
 
   const handleSeniorDelete = async (id: string) => {
     if (!intern) return;
-    await fetch("/api/submissions/senior", {
+    const res = await fetch("/api/submissions/senior", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, employeeId: intern.employeeId }),
     });
+    if (!res.ok) throw new Error("선배 탐구생활 삭제에 실패했습니다.");
     await fetchSubmissions(intern.employeeId);
   };
 
   const handlePlanDelete = async (id: string) => {
     if (!intern) return;
-    await fetch("/api/submissions/plan", {
+    const res = await fetch("/api/submissions/plan", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, employeeId: intern.employeeId }),
     });
+    if (!res.ok) throw new Error("계획서 삭제에 실패했습니다.");
     await fetchSubmissions(intern.employeeId);
   };
 
   const handleManualDelete = async (id: string) => {
     if (!intern) return;
-    await fetch("/api/submissions/manual", {
+    const res = await fetch("/api/submissions/manual", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, employeeId: intern.employeeId }),
     });
+    if (!res.ok) throw new Error("멘토링 리뷰 삭제에 실패했습니다.");
     await fetchSubmissions(intern.employeeId);
   };
 

@@ -290,6 +290,7 @@ function SubmissionCard({
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const [editForm, setEditForm] = useState({
     date: s.date,
     seniorName: s.seniorName,
@@ -306,15 +307,19 @@ function SubmissionCard({
 
   const handleDelete = async () => {
     if (!confirm("이 제출 건을 삭제하시겠습니까?")) return;
+    setError("");
     setDeleting(true);
     try {
       await onDelete(s.id);
+    } catch {
+      setError("삭제 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
     } finally {
       setDeleting(false);
     }
   };
 
   const handleSave = async () => {
+    setError("");
     setSaving(true);
     try {
       const res = await fetch("/api/submissions/senior", {
@@ -322,10 +327,11 @@ function SubmissionCard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: s.id, employeeId: s.employeeId, ...editForm }),
       });
-      if (res.ok) {
-        setEditing(false);
-        await onRefresh();
-      }
+      if (!res.ok) throw new Error("수정에 실패했습니다.");
+      setEditing(false);
+      await onRefresh();
+    } catch {
+      setError("수정 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
     } finally {
       setSaving(false);
     }
@@ -369,6 +375,9 @@ function SubmissionCard({
           <span className="text-gray-400 text-xs">{open ? "▲" : "▼"}</span>
         </div>
       </button>
+      {error && (
+        <p className="px-4 pb-3 text-xs text-red-500">{error}</p>
+      )}
       {open && !editing && (
         <div className="px-4 pb-4 space-y-3 border-t border-gray-100">
           <DetailRow label="선배 이름" value={s.seniorName} />

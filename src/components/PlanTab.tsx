@@ -14,12 +14,16 @@ interface PlanTabProps {
 
 export default function PlanTab({ plan, internName, onSubmit, onDelete }: PlanTabProps) {
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const handleDelete = async () => {
     if (!plan || !confirm("계획서를 삭제하시겠습니까?")) return;
+    setDeleteError("");
     setDeleting(true);
     try {
       await onDelete(plan.id);
+    } catch {
+      setDeleteError("삭제 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
     } finally {
       setDeleting(false);
     }
@@ -76,6 +80,11 @@ export default function PlanTab({ plan, internName, onSubmit, onDelete }: PlanTa
     return (
       <div className="max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto px-4 py-8">
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
+          {deleteError && (
+            <div className="mb-4 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+              {deleteError}
+            </div>
+          )}
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-bold text-gray-900">멘토링 계획서</h2>
             <div className="flex gap-2">
