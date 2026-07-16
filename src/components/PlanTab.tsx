@@ -37,7 +37,7 @@ export default function PlanTab({ plan, internName, onSubmit, onDelete }: PlanTa
       syncedInitialPlan.current = true;
     }
   }, [plan]);
-  const { value: form, save: saveForm, clear: clearDraft, savedAt: draftSavedAt } = useDraft("draft_plan", {
+  const { value: form, save: saveForm, savedAt: draftSavedAt } = useDraft("draft_plan", {
     department: plan?.department ?? "",
     mentorName: plan?.mentorName ?? "",
     mentoringPlan: plan?.mentoringPlan ?? "",
@@ -67,7 +67,6 @@ export default function PlanTab({ plan, internName, onSubmit, onDelete }: PlanTa
     setSubmitting(true);
     try {
       await onSubmit(form);
-      clearDraft();
       setEditing(false);
     } catch {
       setError("제출 중 오류가 발생했습니다.");
