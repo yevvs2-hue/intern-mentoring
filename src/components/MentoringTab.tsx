@@ -37,6 +37,7 @@ export default function MentoringTab({ internName, onSubmit, onPhotoSubmit, subm
   const [photoError, setPhotoError] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   const submittedRoundIndices = useMemo(
@@ -71,6 +72,7 @@ export default function MentoringTab({ internName, onSubmit, onPhotoSubmit, subm
     if (!canSubmit || selectedRoundIdx === null) {
       return;
     }
+    setError("");
     setSubmitting(true);
     try {
       await onSubmit({ ...form, internName, date: MENTORING_ROUNDS[selectedRoundIdx].start, duration: "" }, selectedPhotos);
@@ -79,6 +81,8 @@ export default function MentoringTab({ internName, onSubmit, onPhotoSubmit, subm
       clearDraft();
       setSelectedPhotos([]);
       setPhotoError(false);
+    } catch {
+      setError("제출 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
     } finally {
       setSubmitting(false);
     }
@@ -123,6 +127,12 @@ export default function MentoringTab({ internName, onSubmit, onPhotoSubmit, subm
       {submitted && (
         <div className="mb-4 bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-3 text-sm">
           ✅ 활동일지가 성공적으로 제출되었습니다!
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+          {error}
         </div>
       )}
 

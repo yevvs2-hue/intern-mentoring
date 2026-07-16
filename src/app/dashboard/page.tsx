@@ -68,11 +68,12 @@ function DashboardInner() {
 
   const handlePlanSubmit = async (data: Omit<PlanSubmission, "id" | "submittedAt" | "employeeId" | "internName">) => {
     if (!intern) return;
-    await fetch("/api/submissions/plan", {
+    const res = await fetch("/api/submissions/plan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...data, employeeId: intern.employeeId, internName: intern.name }),
     });
+    if (!res.ok) throw new Error("계획서 제출에 실패했습니다.");
     await fetchSubmissions(intern.employeeId);
   };
 
@@ -83,7 +84,8 @@ function DashboardInner() {
     fd.append("internName", intern.name);
     Object.entries(data).forEach(([k, v]) => fd.append(k, v ?? ""));
     photos.forEach((f) => fd.append("photos", f));
-    await fetch("/api/submissions/mentoring", { method: "POST", body: fd });
+    const res = await fetch("/api/submissions/mentoring", { method: "POST", body: fd });
+    if (!res.ok) throw new Error("멘토링 활동일지 제출에 실패했습니다.");
     await fetchSubmissions(intern.employeeId);
   };
 
@@ -94,7 +96,8 @@ function DashboardInner() {
     fd.append("internName", intern.name);
     Object.entries(data).forEach(([k, v]) => fd.append(k, v ?? ""));
     photos.forEach((f) => fd.append("photos", f));
-    await fetch("/api/submissions/senior", { method: "POST", body: fd });
+    const res = await fetch("/api/submissions/senior", { method: "POST", body: fd });
+    if (!res.ok) throw new Error("선배 탐구생활 제출에 실패했습니다.");
     await fetchSubmissions(intern.employeeId);
   };
 
@@ -120,7 +123,8 @@ function DashboardInner() {
   const handlePhotoSubmit = async (formData: FormData) => {
     if (!intern) return;
     formData.append("employeeId", intern.employeeId);
-    await fetch("/api/submissions/photo", { method: "POST", body: formData });
+    const res = await fetch("/api/submissions/photo", { method: "POST", body: formData });
+    if (!res.ok) throw new Error("사진 제출에 실패했습니다.");
     await fetchSubmissions(intern.employeeId);
   };
 
