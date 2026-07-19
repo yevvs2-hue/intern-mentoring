@@ -447,7 +447,7 @@ function InternManagementTab({ interns, data, onRefresh }: { interns: Intern[]; 
   );
 }
 
-const REQUIRED = { mentoring: 3, senior: 3, manual: 1 } as const;
+const REQUIRED = { mentoring: 3, senior: 3, manual: 1, plan: 1 } as const;
 
 function RoundSummaryCard({ icon, label, byRound, total, color }: { icon: string; label: string; byRound: number[]; total: number; color: "blue" | "purple" }) {
   const theme = {
@@ -528,12 +528,6 @@ function OverviewTab({ data }: { data: AllSubmissions }) {
         </div>
       </div>
 
-      {/* 주차별 현황 */}
-      <div>
-        <h2 className="text-base font-semibold text-gray-700 mb-3">주차별 현황</h2>
-        <WeeklySection data={data} />
-      </div>
-
       {/* 인턴별 제출 현황 테이블 */}
       <div>
         <h2 className="text-base font-semibold text-gray-700 mb-3">인턴별 제출 현황</h2>
@@ -544,21 +538,27 @@ function OverviewTab({ data }: { data: AllSubmissions }) {
         ) : (
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             {/* 헤더 */}
-            <div className="grid grid-cols-[1fr_auto_auto_auto] items-center px-5 py-2.5 bg-gray-50 border-b border-gray-100 text-xs font-medium text-gray-500 gap-4">
+            <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center px-5 py-2.5 bg-gray-50 border-b border-gray-100 text-xs font-medium text-gray-500 gap-4">
               <span>이름</span>
+              <span className="text-center w-20">계획서</span>
               <span className="text-center w-24">멘토링 (3회)</span>
               <span className="text-center w-24">선배탐구 (3회)</span>
               <span className="text-center w-20">멘토링 리뷰 (1회)</span>
             </div>
             {data.interns.map((intern) => {
+              const p = data.plan.filter((s) => s.employeeId === intern.employeeId).length;
               const m = data.mentoring.filter((s) => s.employeeId === intern.employeeId).length;
               const sr = data.senior.filter((s) => s.employeeId === intern.employeeId).length;
               const mn = data.manual.filter((s) => s.employeeId === intern.employeeId).length;
               return (
-                <div key={intern.employeeId} className="grid grid-cols-[1fr_auto_auto_auto] items-center px-5 py-3.5 border-b border-gray-50 last:border-0 gap-4 hover:bg-gray-50 transition-colors">
+                <div key={intern.employeeId} className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center px-5 py-3.5 border-b border-gray-50 last:border-0 gap-4 hover:bg-gray-50 transition-colors">
                   <div>
                     <span className="font-medium text-gray-800 text-sm">{intern.name}</span>
                     <span className="text-xs text-gray-400 ml-1.5">{intern.employeeId}</span>
+                  </div>
+                  <div className="w-20 flex flex-col items-center gap-1">
+                    <Dots filled={Math.min(p, REQUIRED.plan)} total={REQUIRED.plan} color="green" />
+                    <span className={`text-xs font-medium ${p >= REQUIRED.plan ? "text-green-600" : "text-gray-400"}`}>{p}/{REQUIRED.plan}</span>
                   </div>
                   <div className="w-24 flex flex-col items-center gap-1">
                     <Dots filled={Math.min(m, REQUIRED.mentoring)} total={REQUIRED.mentoring} color="blue" />
@@ -578,92 +578,6 @@ function OverviewTab({ data }: { data: AllSubmissions }) {
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function WeeklySection({ data }: { data: AllSubmissions }) {
-  const weekSet = new Set<string>();
-  data.mentoring.forEach((s) => weekSet.add(getMonday(s.date)));
-  data.senior.forEach((s) => weekSet.add(getMonday(s.date)));
-  data.manual.forEach((s) => weekSet.add(getMonday(s.submittedAt.slice(0, 10))));
-  const weeks = Array.from(weekSet).sort((a, b) => b.localeCompare(a));
-
-  if (weeks.length === 0) return <EmptyState message="아직 제출된 활동일지가 없습니다." />;
-
-  return (
-    <div className="space-y-4">
-      {weeks.map((monday, wi) => {
-        const weekLabel = `${weeks.length - wi}주차`;
-        const mSubs = data.mentoring.filter((s) => getMonday(s.date) === monday);
-        const srSubs = data.senior.filter((s) => getMonday(s.date) === monday);
-        const mnSubs = data.manual.filter((s) => getMonday(s.submittedAt.slice(0, 10)) === monday);
-        const mIds = new Set(mSubs.map((s) => s.employeeId));
-        const srIds = new Set(srSubs.map((s) => s.employeeId));
-        const mnIds = new Set(mnSubs.map((s) => s.employeeId));
-        const activeInterns = data.interns.filter(
-          (i) => mIds.has(i.employeeId) || srIds.has(i.employeeId) || mnIds.has(i.employeeId)
-        );
-        const n = data.interns.length;
-        const notSubmitted = data.interns.filter(
-          (i) => !mIds.has(i.employeeId) && !srIds.has(i.employeeId) && !mnIds.has(i.employeeId)
-        );
-
-        return (
-          <div key={monday} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="px-5 py-4 bg-gray-50 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div className="flex items-center gap-3">
-                <span className="font-bold text-gray-800">{weekLabel}</span>
-                <span className="text-sm text-gray-400">{formatWeekRange(monday)}</span>
-              </div>
-              <div className="flex items-center gap-3 text-xs">
-                <span className="bg-blue-50 text-blue-700 border border-blue-100 rounded-full px-2.5 py-1 font-medium">멘토링 {mIds.size}명</span>
-                <span className="bg-purple-50 text-purple-700 border border-purple-100 rounded-full px-2.5 py-1 font-medium">선배탐구 {srIds.size}명</span>
-                <span className="bg-green-50 text-green-700 border border-green-100 rounded-full px-2.5 py-1 font-medium">멘토링 리뷰 {mnIds.size}명</span>
-                <span className="text-gray-400">/{n}명</span>
-              </div>
-            </div>
-            {activeInterns.length > 0 && (
-              <div>
-                <div className="grid grid-cols-[1fr_auto_auto_auto] px-5 py-2 border-b border-gray-50 text-xs font-medium text-gray-400 gap-4">
-                  <span>이름</span>
-                  <span className="w-20 text-center">멘토링</span>
-                  <span className="w-20 text-center">선배탐구</span>
-                  <span className="w-20 text-center">멘토링 리뷰</span>
-                </div>
-                {activeInterns.map((intern) => {
-                  const mCount = mSubs.filter((s) => s.employeeId === intern.employeeId).length;
-                  const srCount = srSubs.filter((s) => s.employeeId === intern.employeeId).length;
-                  const mnCount = mnSubs.filter((s) => s.employeeId === intern.employeeId).length;
-                  return (
-                    <div key={intern.employeeId} className="grid grid-cols-[1fr_auto_auto_auto] items-center px-5 py-3 border-b border-gray-50 last:border-0 gap-4 hover:bg-gray-50 transition-colors">
-                      <div>
-                        <span className="text-sm font-medium text-gray-800">{intern.name}</span>
-                        <span className="text-xs text-gray-400 ml-1.5">{intern.employeeId}</span>
-                      </div>
-                      <div className="w-20 text-center">
-                        {mCount > 0 ? <span className="inline-block bg-blue-100 text-blue-700 text-xs font-semibold rounded-full px-2.5 py-0.5">{mCount}회</span> : <span className="text-gray-300 text-xs">—</span>}
-                      </div>
-                      <div className="w-20 text-center">
-                        {srCount > 0 ? <span className="inline-block bg-purple-100 text-purple-700 text-xs font-semibold rounded-full px-2.5 py-0.5">{srCount}회</span> : <span className="text-gray-300 text-xs">—</span>}
-                      </div>
-                      <div className="w-20 text-center">
-                        {mnCount > 0 ? <span className="inline-block bg-green-100 text-green-700 text-xs font-semibold rounded-full px-2.5 py-0.5">제출</span> : <span className="text-gray-300 text-xs">—</span>}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            {notSubmitted.length > 0 && (
-              <div className="px-5 py-3 border-t border-gray-100 bg-gray-50">
-                <span className="text-xs text-gray-400">미제출 {notSubmitted.length}명: </span>
-                <span className="text-xs text-gray-500">{notSubmitted.map((i) => i.name).join(", ")}</span>
-              </div>
-            )}
-          </div>
-        );
-      })}
     </div>
   );
 }
