@@ -22,15 +22,6 @@ function isLateRoundSubmission(submittedAt: string, activityDate: string): boole
   return isLateSubmission(submittedAt, deadline);
 }
 
-function countLateSubmissions(data: AllSubmissions, employeeId: string): number {
-  const late =
-    data.plan.filter((p) => p.employeeId === employeeId && isLateSubmission(p.submittedAt, PLAN_DEADLINE)).length +
-    data.mentoring.filter((s) => s.employeeId === employeeId && isLateRoundSubmission(s.submittedAt, s.date)).length +
-    data.senior.filter((s) => s.employeeId === employeeId && isLateRoundSubmission(s.submittedAt, s.date)).length +
-    data.manual.filter((s) => s.employeeId === employeeId && isLateSubmission(s.submittedAt, MANUAL_DEADLINE)).length;
-  return late;
-}
-
 interface AllSubmissions {
   interns: Intern[];
   mentoring: MentoringSubmission[];
@@ -500,6 +491,7 @@ function Dots({ filled, total, color }: { filled: number; total: number; color: 
     blue: "bg-blue-500",
     purple: "bg-purple-500",
     green: "bg-green-500",
+    red: "bg-red-500",
   };
   const dotEmpty = "bg-gray-200";
   return (
@@ -573,31 +565,31 @@ function OverviewTab({ data }: { data: AllSubmissions }) {
               const m = data.mentoring.filter((s) => s.employeeId === intern.employeeId).length;
               const sr = data.senior.filter((s) => s.employeeId === intern.employeeId).length;
               const mn = data.manual.filter((s) => s.employeeId === intern.employeeId).length;
-              const lateCount = countLateSubmissions(data, intern.employeeId);
+              const pLate = data.plan.some((s) => s.employeeId === intern.employeeId && isLateSubmission(s.submittedAt, PLAN_DEADLINE));
+              const mLate = data.mentoring.some((s) => s.employeeId === intern.employeeId && isLateRoundSubmission(s.submittedAt, s.date));
+              const srLate = data.senior.some((s) => s.employeeId === intern.employeeId && isLateRoundSubmission(s.submittedAt, s.date));
+              const mnLate = data.manual.some((s) => s.employeeId === intern.employeeId && isLateSubmission(s.submittedAt, MANUAL_DEADLINE));
               return (
                 <div key={intern.employeeId} className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center px-5 py-3.5 border-b border-gray-50 last:border-0 gap-4 hover:bg-gray-50 transition-colors">
                   <div>
                     <span className="font-medium text-gray-800 text-sm">{intern.name}</span>
                     <span className="text-xs text-gray-400 ml-1.5">{intern.employeeId}</span>
-                    {lateCount > 0 && (
-                      <span className="text-xs font-medium text-red-500 bg-red-50 border border-red-100 rounded-full px-2 py-0.5 ml-2">⚠ 지각 {lateCount}건</span>
-                    )}
                   </div>
                   <div className="w-20 flex flex-col items-center gap-1">
-                    <Dots filled={Math.min(p, REQUIRED.plan)} total={REQUIRED.plan} color="green" />
-                    <span className={`text-xs font-medium ${p >= REQUIRED.plan ? "text-green-600" : "text-gray-400"}`}>{p}/{REQUIRED.plan}</span>
+                    <Dots filled={Math.min(p, REQUIRED.plan)} total={REQUIRED.plan} color={pLate ? "red" : "green"} />
+                    <span className={`text-xs font-medium ${pLate ? "text-red-600" : p >= REQUIRED.plan ? "text-green-600" : "text-gray-400"}`}>{p}/{REQUIRED.plan}</span>
                   </div>
                   <div className="w-24 flex flex-col items-center gap-1">
-                    <Dots filled={Math.min(m, REQUIRED.mentoring)} total={REQUIRED.mentoring} color="blue" />
-                    <span className={`text-xs font-medium ${m >= REQUIRED.mentoring ? "text-blue-600" : m > 0 ? "text-amber-500" : "text-gray-400"}`}>{m}/{REQUIRED.mentoring}</span>
+                    <Dots filled={Math.min(m, REQUIRED.mentoring)} total={REQUIRED.mentoring} color={mLate ? "red" : "blue"} />
+                    <span className={`text-xs font-medium ${mLate ? "text-red-600" : m >= REQUIRED.mentoring ? "text-blue-600" : m > 0 ? "text-amber-500" : "text-gray-400"}`}>{m}/{REQUIRED.mentoring}</span>
                   </div>
                   <div className="w-24 flex flex-col items-center gap-1">
-                    <Dots filled={Math.min(sr, REQUIRED.senior)} total={REQUIRED.senior} color="purple" />
-                    <span className={`text-xs font-medium ${sr >= REQUIRED.senior ? "text-purple-600" : sr > 0 ? "text-amber-500" : "text-gray-400"}`}>{sr}/{REQUIRED.senior}</span>
+                    <Dots filled={Math.min(sr, REQUIRED.senior)} total={REQUIRED.senior} color={srLate ? "red" : "purple"} />
+                    <span className={`text-xs font-medium ${srLate ? "text-red-600" : sr >= REQUIRED.senior ? "text-purple-600" : sr > 0 ? "text-amber-500" : "text-gray-400"}`}>{sr}/{REQUIRED.senior}</span>
                   </div>
                   <div className="w-20 flex flex-col items-center gap-1">
-                    <Dots filled={Math.min(mn, REQUIRED.manual)} total={REQUIRED.manual} color="green" />
-                    <span className={`text-xs font-medium ${mn >= REQUIRED.manual ? "text-green-600" : "text-gray-400"}`}>{mn}/{REQUIRED.manual}</span>
+                    <Dots filled={Math.min(mn, REQUIRED.manual)} total={REQUIRED.manual} color={mnLate ? "red" : "green"} />
+                    <span className={`text-xs font-medium ${mnLate ? "text-red-600" : mn >= REQUIRED.manual ? "text-green-600" : "text-gray-400"}`}>{mn}/{REQUIRED.manual}</span>
                   </div>
                 </div>
               );
