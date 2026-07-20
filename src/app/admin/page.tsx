@@ -560,40 +560,42 @@ function OverviewTab({ data }: { data: AllSubmissions }) {
               <span className="text-center w-24">선배탐구 (3회)</span>
               <span className="text-center w-20">멘토링 리뷰 (1회)</span>
             </div>
-            {data.interns.map((intern) => {
-              const p = data.plan.filter((s) => s.employeeId === intern.employeeId).length;
-              const m = data.mentoring.filter((s) => s.employeeId === intern.employeeId).length;
-              const sr = data.senior.filter((s) => s.employeeId === intern.employeeId).length;
-              const mn = data.manual.filter((s) => s.employeeId === intern.employeeId).length;
-              const pLate = data.plan.some((s) => s.employeeId === intern.employeeId && isLateSubmission(s.submittedAt, PLAN_DEADLINE));
-              const mLate = data.mentoring.some((s) => s.employeeId === intern.employeeId && isLateRoundSubmission(s.submittedAt, s.date));
-              const srLate = data.senior.some((s) => s.employeeId === intern.employeeId && isLateRoundSubmission(s.submittedAt, s.date));
-              const mnLate = data.manual.some((s) => s.employeeId === intern.employeeId && isLateSubmission(s.submittedAt, MANUAL_DEADLINE));
-              return (
-                <div key={intern.employeeId} className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center px-5 py-3.5 border-b border-gray-50 last:border-0 gap-4 hover:bg-gray-50 transition-colors">
-                  <div>
-                    <span className="font-medium text-gray-800 text-sm">{intern.name}</span>
-                    <span className="text-xs text-gray-400 ml-1.5">{intern.employeeId}</span>
+            {[...data.interns]
+              .sort((a, b) => a.name.localeCompare(b.name, "ko"))
+              .map((intern) => {
+                const p = data.plan.filter((s) => s.employeeId === intern.employeeId).length;
+                const m = data.mentoring.filter((s) => s.employeeId === intern.employeeId).length;
+                const sr = data.senior.filter((s) => s.employeeId === intern.employeeId).length;
+                const mn = data.manual.filter((s) => s.employeeId === intern.employeeId).length;
+                const pLate = data.plan.some((s) => s.employeeId === intern.employeeId && isLateSubmission(s.submittedAt, PLAN_DEADLINE));
+                const mLate = data.mentoring.some((s) => s.employeeId === intern.employeeId && isLateRoundSubmission(s.submittedAt, s.date));
+                const srLate = data.senior.some((s) => s.employeeId === intern.employeeId && isLateRoundSubmission(s.submittedAt, s.date));
+                const mnLate = data.manual.some((s) => s.employeeId === intern.employeeId && isLateSubmission(s.submittedAt, MANUAL_DEADLINE));
+                return (
+                  <div key={intern.employeeId} className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center px-5 py-3.5 border-b border-gray-50 last:border-0 gap-4 hover:bg-gray-50 transition-colors">
+                    <div>
+                      <span className="font-medium text-gray-800 text-sm">{intern.name}</span>
+                      <span className="text-xs text-gray-400 ml-1.5">{intern.employeeId}</span>
+                    </div>
+                    <div className="w-20 flex flex-col items-center gap-1">
+                      <Dots filled={Math.min(p, REQUIRED.plan)} total={REQUIRED.plan} color={pLate ? "red" : "green"} />
+                      <span className={`text-xs font-medium ${pLate ? "text-red-600" : p >= REQUIRED.plan ? "text-green-600" : "text-gray-400"}`}>{p}/{REQUIRED.plan}</span>
+                    </div>
+                    <div className="w-24 flex flex-col items-center gap-1">
+                      <Dots filled={Math.min(m, REQUIRED.mentoring)} total={REQUIRED.mentoring} color={mLate ? "red" : "blue"} />
+                      <span className={`text-xs font-medium ${mLate ? "text-red-600" : m >= REQUIRED.mentoring ? "text-blue-600" : m > 0 ? "text-amber-500" : "text-gray-400"}`}>{m}/{REQUIRED.mentoring}</span>
+                    </div>
+                    <div className="w-24 flex flex-col items-center gap-1">
+                      <Dots filled={Math.min(sr, REQUIRED.senior)} total={REQUIRED.senior} color={srLate ? "red" : "purple"} />
+                      <span className={`text-xs font-medium ${srLate ? "text-red-600" : sr >= REQUIRED.senior ? "text-purple-600" : sr > 0 ? "text-amber-500" : "text-gray-400"}`}>{sr}/{REQUIRED.senior}</span>
+                    </div>
+                    <div className="w-20 flex flex-col items-center gap-1">
+                      <Dots filled={Math.min(mn, REQUIRED.manual)} total={REQUIRED.manual} color={mnLate ? "red" : "green"} />
+                      <span className={`text-xs font-medium ${mnLate ? "text-red-600" : mn >= REQUIRED.manual ? "text-green-600" : "text-gray-400"}`}>{mn}/{REQUIRED.manual}</span>
+                    </div>
                   </div>
-                  <div className="w-20 flex flex-col items-center gap-1">
-                    <Dots filled={Math.min(p, REQUIRED.plan)} total={REQUIRED.plan} color={pLate ? "red" : "green"} />
-                    <span className={`text-xs font-medium ${pLate ? "text-red-600" : p >= REQUIRED.plan ? "text-green-600" : "text-gray-400"}`}>{p}/{REQUIRED.plan}</span>
-                  </div>
-                  <div className="w-24 flex flex-col items-center gap-1">
-                    <Dots filled={Math.min(m, REQUIRED.mentoring)} total={REQUIRED.mentoring} color={mLate ? "red" : "blue"} />
-                    <span className={`text-xs font-medium ${mLate ? "text-red-600" : m >= REQUIRED.mentoring ? "text-blue-600" : m > 0 ? "text-amber-500" : "text-gray-400"}`}>{m}/{REQUIRED.mentoring}</span>
-                  </div>
-                  <div className="w-24 flex flex-col items-center gap-1">
-                    <Dots filled={Math.min(sr, REQUIRED.senior)} total={REQUIRED.senior} color={srLate ? "red" : "purple"} />
-                    <span className={`text-xs font-medium ${srLate ? "text-red-600" : sr >= REQUIRED.senior ? "text-purple-600" : sr > 0 ? "text-amber-500" : "text-gray-400"}`}>{sr}/{REQUIRED.senior}</span>
-                  </div>
-                  <div className="w-20 flex flex-col items-center gap-1">
-                    <Dots filled={Math.min(mn, REQUIRED.manual)} total={REQUIRED.manual} color={mnLate ? "red" : "green"} />
-                    <span className={`text-xs font-medium ${mnLate ? "text-red-600" : mn >= REQUIRED.manual ? "text-green-600" : "text-gray-400"}`}>{mn}/{REQUIRED.manual}</span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
         )}
       </div>
