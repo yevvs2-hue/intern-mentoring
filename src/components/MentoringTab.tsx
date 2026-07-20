@@ -566,7 +566,7 @@ function PhotoUploadSection({ type, onPhotoSubmit, photos }: {
           <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-100">
             {myPhotos.slice().reverse().map(p => (
               <div key={p.id}>
-                <img src={p.fileUrl} alt={p.caption} className="w-full h-28 object-cover rounded-lg" />
+                <img src={`/api/photos/${p.id}`} alt={p.caption} className="w-full h-28 object-cover rounded-lg" />
                 {p.caption && <p className="text-xs text-gray-400 mt-1 truncate">{p.caption}</p>}
               </div>
             ))}

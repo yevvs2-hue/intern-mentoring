@@ -182,7 +182,7 @@ export default function PhotoTab({ type, onSubmit, submissions }: PhotoTabProps)
           <div className="grid grid-cols-2 gap-3">
             {mySubmissions.slice().reverse().map((s) => (
               <div key={s.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <img src={s.fileUrl} alt={s.caption || s.fileName} className="w-full h-40 object-cover" />
+                <img src={`/api/photos/${s.id}`} alt={s.caption || s.fileName} className="w-full h-40 object-cover" />
                 <div className="p-3">
                   <p className="text-xs text-gray-500">{s.date}</p>
                   {s.caption && <p className="text-sm text-gray-700 mt-0.5 line-clamp-2">{s.caption}</p>}
