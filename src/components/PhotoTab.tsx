@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { PhotoSubmission } from "@/types";
-import { compressImages } from "@/lib/compress-image";
+import { compressImages, isImageFile } from "@/lib/compress-image";
 
 interface PhotoTabProps {
   type: "mentoring" | "senior";
@@ -43,7 +43,7 @@ export default function PhotoTab({ type, onSubmit, submissions }: PhotoTabProps)
     setError("");
     const valid: File[] = [];
     for (const f of Array.from(incoming)) {
-      if (!f.type.startsWith("image/")) {
+      if (!isImageFile(f)) {
         setError("이미지 파일만 업로드할 수 있습니다.");
         continue;
       }

@@ -6,7 +6,7 @@ import { downloadPdf } from "@/lib/download-pdf";
 import { useDraft } from "@/hooks/useDraft";
 import { todayLocalDate } from "@/lib/date";
 import { MENTORING_ROUNDS, getRoundIndex } from "@/lib/rounds";
-import { compressImages } from "@/lib/compress-image";
+import { compressImages, isImageFile } from "@/lib/compress-image";
 
 function firstOpenRound(submittedRoundIndices: Set<number>): number | null {
   for (let i = 0; i < MENTORING_ROUNDS.length; i++) {
@@ -61,7 +61,7 @@ export default function SeniorTab({ internName, onSubmit, onPhotoSubmit, submiss
 
   const addPhotos = async (fl: FileList | null) => {
     if (!fl) return;
-    const images = Array.from(fl).filter(f => f.type.startsWith("image/"));
+    const images = Array.from(fl).filter(isImageFile);
     const compressed = await compressImages(images);
     setSelectedPhotos(prev => [...prev, ...compressed]);
     setPhotoError(false);
@@ -500,7 +500,7 @@ function PhotoUploadSection({ type, onPhotoSubmit, photos }: {
 
   const addFiles = async (fl: FileList | null) => {
     if (!fl) return;
-    const images = Array.from(fl).filter(f => f.type.startsWith("image/"));
+    const images = Array.from(fl).filter(isImageFile);
     const compressed = await compressImages(images);
     setFiles(prev => [...prev, ...compressed]);
   };
