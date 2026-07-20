@@ -6,6 +6,7 @@ import { downloadPdf } from "@/lib/download-pdf";
 import { useDraft } from "@/hooks/useDraft";
 import { todayLocalDate } from "@/lib/date";
 import { MENTORING_ROUNDS, getRoundIndex } from "@/lib/rounds";
+import { compressImages } from "@/lib/compress-image";
 
 function firstOpenRound(submittedRoundIndices: Set<number>): number | null {
   for (let i = 0; i < MENTORING_ROUNDS.length; i++) {
@@ -58,9 +59,11 @@ export default function SeniorTab({ internName, onSubmit, onPhotoSubmit, submiss
     saveForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const addPhotos = (fl: FileList | null) => {
+  const addPhotos = async (fl: FileList | null) => {
     if (!fl) return;
-    setSelectedPhotos(prev => [...prev, ...Array.from(fl).filter(f => f.type.startsWith("image/"))]);
+    const images = Array.from(fl).filter(f => f.type.startsWith("image/"));
+    const compressed = await compressImages(images);
+    setSelectedPhotos(prev => [...prev, ...compressed]);
     setPhotoError(false);
   };
 
@@ -491,17 +494,21 @@ function PhotoUploadSection({ type, onPhotoSubmit, photos }: {
   const [files, setFiles] = useState<File[]>([]);
   const [caption, setCaption] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const addFiles = (fl: FileList | null) => {
+  const addFiles = async (fl: FileList | null) => {
     if (!fl) return;
-    setFiles(prev => [...prev, ...Array.from(fl).filter(f => f.type.startsWith("image/"))]);
+    const images = Array.from(fl).filter(f => f.type.startsWith("image/"));
+    const compressed = await compressImages(images);
+    setFiles(prev => [...prev, ...compressed]);
   };
 
   const handleUpload = async () => {
     if (files.length === 0) return;
     setUploading(true);
+    setUploadError("");
     try {
       for (const file of files) {
         const fd = new FormData();
@@ -515,6 +522,8 @@ function PhotoUploadSection({ type, onPhotoSubmit, photos }: {
       }
       setFiles([]);
       setCaption("");
+    } catch {
+      setUploadError("사진 업로드 중 오류가 발생했습니다.");
     } finally {
       setUploading(false);
     }
@@ -562,6 +571,7 @@ function PhotoUploadSection({ type, onPhotoSubmit, photos }: {
             </button>
           </div>
         )}
+        {uploadError && <p className="text-xs text-red-500">{uploadError}</p>}
 
         {myPhotos.length > 0 && (
           <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-100">

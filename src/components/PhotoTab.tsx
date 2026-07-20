@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { PhotoSubmission } from "@/types";
+import { compressImages } from "@/lib/compress-image";
 
 interface PhotoTabProps {
   type: "mentoring" | "senior";
@@ -37,7 +38,7 @@ export default function PhotoTab({ type, onSubmit, submissions }: PhotoTabProps)
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const addFiles = (incoming: FileList | null) => {
+  const addFiles = async (incoming: FileList | null) => {
     if (!incoming) return;
     setError("");
     const valid: File[] = [];
@@ -48,7 +49,8 @@ export default function PhotoTab({ type, onSubmit, submissions }: PhotoTabProps)
       }
       valid.push(f);
     }
-    setFiles((prev) => [...prev, ...valid]);
+    const compressed = await compressImages(valid);
+    setFiles((prev) => [...prev, ...compressed]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
