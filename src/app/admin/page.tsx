@@ -6,7 +6,30 @@ import * as XLSX from "xlsx";
 import { downloadPdf } from "@/lib/download-pdf";
 import CalendarTab from "@/components/CalendarTab";
 import { MENTORING_ROUNDS, getRoundIndex } from "@/lib/rounds";
+import { DEADLINES } from "@/lib/deadlines";
 import { MentoringSubmission, SeniorSubmission, ManualSubmission, PhotoSubmission, PlanSubmission, Intern } from "@/types";
+
+const PLAN_DEADLINE = "2026-07-10";
+const MANUAL_DEADLINE = Object.entries(DEADLINES).find(([, items]) => items.some((i) => i.text === "멘토링 리뷰"))![0];
+
+function isLateSubmission(submittedAt: string, deadline: string): boolean {
+  return submittedAt.slice(0, 10) > deadline;
+}
+
+function isLateRoundSubmission(submittedAt: string, activityDate: string): boolean {
+  const idx = getRoundIndex(activityDate);
+  const deadline = idx === -1 ? MENTORING_ROUNDS[MENTORING_ROUNDS.length - 1].end : MENTORING_ROUNDS[idx].end;
+  return isLateSubmission(submittedAt, deadline);
+}
+
+function countLateSubmissions(data: AllSubmissions, employeeId: string): number {
+  const late =
+    data.plan.filter((p) => p.employeeId === employeeId && isLateSubmission(p.submittedAt, PLAN_DEADLINE)).length +
+    data.mentoring.filter((s) => s.employeeId === employeeId && isLateRoundSubmission(s.submittedAt, s.date)).length +
+    data.senior.filter((s) => s.employeeId === employeeId && isLateRoundSubmission(s.submittedAt, s.date)).length +
+    data.manual.filter((s) => s.employeeId === employeeId && isLateSubmission(s.submittedAt, MANUAL_DEADLINE)).length;
+  return late;
+}
 
 interface AllSubmissions {
   interns: Intern[];
@@ -550,11 +573,15 @@ function OverviewTab({ data }: { data: AllSubmissions }) {
               const m = data.mentoring.filter((s) => s.employeeId === intern.employeeId).length;
               const sr = data.senior.filter((s) => s.employeeId === intern.employeeId).length;
               const mn = data.manual.filter((s) => s.employeeId === intern.employeeId).length;
+              const lateCount = countLateSubmissions(data, intern.employeeId);
               return (
                 <div key={intern.employeeId} className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center px-5 py-3.5 border-b border-gray-50 last:border-0 gap-4 hover:bg-gray-50 transition-colors">
                   <div>
                     <span className="font-medium text-gray-800 text-sm">{intern.name}</span>
                     <span className="text-xs text-gray-400 ml-1.5">{intern.employeeId}</span>
+                    {lateCount > 0 && (
+                      <span className="text-xs font-medium text-red-500 bg-red-50 border border-red-100 rounded-full px-2 py-0.5 ml-2">⚠ 지각 {lateCount}건</span>
+                    )}
                   </div>
                   <div className="w-20 flex flex-col items-center gap-1">
                     <Dots filled={Math.min(p, REQUIRED.plan)} total={REQUIRED.plan} color="green" />
