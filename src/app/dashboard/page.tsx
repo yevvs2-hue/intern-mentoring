@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { upload } from "@vercel/blob/client";
 import TabNav from "@/components/TabNav";
 import HomeTab from "@/components/HomeTab";
 import MentoringTab from "@/components/MentoringTab";
@@ -79,25 +80,65 @@ function DashboardInner() {
 
   const handleMentoringSubmit = async (data: Omit<MentoringSubmission, "id" | "submittedAt" | "employeeId">, photos: File[]) => {
     if (!intern) return;
-    const fd = new FormData();
-    fd.append("employeeId", intern.employeeId);
-    fd.append("internName", intern.name);
-    Object.entries(data).forEach(([k, v]) => fd.append(k, v ?? ""));
-    photos.forEach((f) => fd.append("photos", f));
-    const res = await fetch("/api/submissions/mentoring", { method: "POST", body: fd });
-    if (!res.ok) throw new Error("멘토링 활동일지 제출에 실패했습니다.");
+    try {
+      // 큰 사진이 서버리스 함수 요청 크기 제한(4.5MB)에 걸리지 않도록 브라우저에서 Blob으로 직접 업로드
+      const uploadedPhotos = await Promise.all(
+        photos.map(async (file) => {
+          const blob = await upload(`photos/${crypto.randomUUID()}-${file.name}`, file, {
+            access: "private",
+            handleUploadUrl: "/api/photos/upload",
+          });
+          return { fileUrl: blob.url, fileName: file.name, fileSize: file.size };
+        })
+      );
+      const res = await fetch("/api/submissions/mentoring", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, employeeId: intern.employeeId, internName: intern.name, photos: uploadedPhotos }),
+      });
+      if (!res.ok) throw new Error("멘토링 활동일지 제출에 실패했습니다.");
+    } catch {
+      // Blob 토큰이 없는 로컬 환경 등 직접 업로드가 불가능한 경우 기존 방식으로 대체
+      const fd = new FormData();
+      fd.append("employeeId", intern.employeeId);
+      fd.append("internName", intern.name);
+      Object.entries(data).forEach(([k, v]) => fd.append(k, v ?? ""));
+      photos.forEach((f) => fd.append("photos", f));
+      const res = await fetch("/api/submissions/mentoring", { method: "POST", body: fd });
+      if (!res.ok) throw new Error("멘토링 활동일지 제출에 실패했습니다.");
+    }
     await fetchSubmissions(intern.employeeId);
   };
 
   const handleSeniorSubmit = async (data: Omit<SeniorSubmission, "id" | "submittedAt" | "employeeId">, photos: File[]) => {
     if (!intern) return;
-    const fd = new FormData();
-    fd.append("employeeId", intern.employeeId);
-    fd.append("internName", intern.name);
-    Object.entries(data).forEach(([k, v]) => fd.append(k, v ?? ""));
-    photos.forEach((f) => fd.append("photos", f));
-    const res = await fetch("/api/submissions/senior", { method: "POST", body: fd });
-    if (!res.ok) throw new Error("선배 탐구생활 제출에 실패했습니다.");
+    try {
+      // 큰 사진이 서버리스 함수 요청 크기 제한(4.5MB)에 걸리지 않도록 브라우저에서 Blob으로 직접 업로드
+      const uploadedPhotos = await Promise.all(
+        photos.map(async (file) => {
+          const blob = await upload(`photos/${crypto.randomUUID()}-${file.name}`, file, {
+            access: "private",
+            handleUploadUrl: "/api/photos/upload",
+          });
+          return { fileUrl: blob.url, fileName: file.name, fileSize: file.size };
+        })
+      );
+      const res = await fetch("/api/submissions/senior", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, employeeId: intern.employeeId, internName: intern.name, photos: uploadedPhotos }),
+      });
+      if (!res.ok) throw new Error("선배 탐구생활 제출에 실패했습니다.");
+    } catch {
+      // Blob 토큰이 없는 로컬 환경 등 직접 업로드가 불가능한 경우 기존 방식으로 대체
+      const fd = new FormData();
+      fd.append("employeeId", intern.employeeId);
+      fd.append("internName", intern.name);
+      Object.entries(data).forEach(([k, v]) => fd.append(k, v ?? ""));
+      photos.forEach((f) => fd.append("photos", f));
+      const res = await fetch("/api/submissions/senior", { method: "POST", body: fd });
+      if (!res.ok) throw new Error("선배 탐구생활 제출에 실패했습니다.");
+    }
     await fetchSubmissions(intern.employeeId);
   };
 
@@ -122,9 +163,36 @@ function DashboardInner() {
 
   const handlePhotoSubmit = async (formData: FormData) => {
     if (!intern) return;
-    formData.append("employeeId", intern.employeeId);
-    const res = await fetch("/api/submissions/photo", { method: "POST", body: formData });
-    if (!res.ok) throw new Error("사진 제출에 실패했습니다.");
+    const file = formData.get("file") as File | null;
+    try {
+      // 큰 사진이 서버리스 함수 요청 크기 제한(4.5MB)에 걸리지 않도록 브라우저에서 Blob으로 직접 업로드
+      if (!file) throw new Error("파일이 없습니다.");
+      const blob = await upload(`photos/${crypto.randomUUID()}-${file.name}`, file, {
+        access: "private",
+        handleUploadUrl: "/api/photos/upload",
+      });
+      const res = await fetch("/api/submissions/photo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: formData.get("type"),
+          employeeId: intern.employeeId,
+          internName: (formData.get("internName") as string) || intern.name,
+          department: formData.get("department"),
+          date: formData.get("date"),
+          caption: formData.get("caption"),
+          fileUrl: blob.url,
+          fileName: file.name,
+          fileSize: file.size,
+        }),
+      });
+      if (!res.ok) throw new Error("사진 제출에 실패했습니다.");
+    } catch {
+      // Blob 토큰이 없는 로컬 환경 등 직접 업로드가 불가능한 경우 기존 방식으로 대체
+      formData.append("employeeId", intern.employeeId);
+      const res = await fetch("/api/submissions/photo", { method: "POST", body: formData });
+      if (!res.ok) throw new Error("사진 제출에 실패했습니다.");
+    }
     await fetchSubmissions(intern.employeeId);
   };
 

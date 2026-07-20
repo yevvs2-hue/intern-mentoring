@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
   const contentType = req.headers.get("content-type") ?? "";
 
   if (contentType.includes("multipart/form-data")) {
-    // 사진 포함 통합 제출
+    // 로컬 개발 등 Blob 직접 업로드가 불가능한 환경을 위한 대체 경로
     const formData = await req.formData();
     const employeeId = formData.get("employeeId") as string;
     const internName = formData.get("internName") as string;
@@ -116,18 +116,38 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ submission: mentoring, photos });
   }
 
-  // 기존 JSON 방식 (하위 호환)
+  // 브라우저에서 Blob으로 직접 업로드한 뒤 메타데이터만 저장 (서버리스 함수 요청 크기 제한 우회)
   const body = await req.json();
-  if (!body.employeeId) {
+  const { photos: uploadedPhotos, ...fields } = body as Omit<MentoringSubmission, "id" | "submittedAt"> & {
+    photos?: { fileUrl: string; fileName: string; fileSize: number }[];
+  };
+  if (!fields.employeeId) {
     return NextResponse.json({ error: "employeeId is required" }, { status: 400 });
   }
-  const submission: MentoringSubmission = {
+  const now = new Date().toISOString();
+  const mentoring: MentoringSubmission = {
     id: crypto.randomUUID(),
-    submittedAt: new Date().toISOString(),
-    ...body,
+    submittedAt: now,
+    ...fields,
   };
+  const photos: PhotoSubmission[] = (uploadedPhotos ?? []).map((p) => ({
+    id: crypto.randomUUID(),
+    type: "mentoring",
+    submissionId: mentoring.id,
+    employeeId: mentoring.employeeId,
+    internName: mentoring.internName,
+    department: mentoring.department,
+    date: mentoring.date,
+    caption: "",
+    fileName: p.fileName,
+    fileUrl: p.fileUrl,
+    fileSize: p.fileSize,
+    submittedAt: now,
+  }));
   await mutateStore((store) => {
-    store.mentoring.push(submission);
+    store.mentoring.push(mentoring);
+    if (!store.photos) store.photos = [];
+    store.photos.push(...photos);
   });
-  return NextResponse.json({ submission });
+  return NextResponse.json({ submission: mentoring, photos });
 }
